@@ -24,37 +24,7 @@ export default function Page() {
                 case 'text':
                   return (
                     <div key={index} className="markdown-content prose prose-sm max-w-none mt-2">
-                      <ReactMarkdown
-                        components={{
-                          // Customize code blocks
-                          code: ({ node, inline, className, children, ...props }) => {
-                            return inline ? (
-                              <code
-                                className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono"
-                                {...props}
-                              >
-                                {children}
-                              </code>
-                            ) : (
-                              <code
-                                className="block bg-gray-100 p-3 rounded text-sm font-mono overflow-x-auto"
-                                {...props}
-                              >
-                                {children}
-                              </code>
-                            );
-                          },
-                          // Customize blockquotes
-                          blockquote: ({ children, ...props }) => (
-                            <blockquote
-                              className="border-l-4 border-gray-300 pl-4 italic text-gray-600"
-                              {...props}
-                            >
-                              {children}
-                            </blockquote>
-                          ),
-                        }}
-                      >
+                      <ReactMarkdown>
                         {part.text}
                       </ReactMarkdown>
                     </div>
