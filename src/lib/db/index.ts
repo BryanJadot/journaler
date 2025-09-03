@@ -19,4 +19,13 @@ if (isTest) {
   pool = _pool;
 }
 
+pool.on('error', (err) => {
+  // During teardown/branch deletion in tests, Neon may drop connections.
+  // TODO: This is a hack, figure out how to wait for the pool to end first.
+  if (err?.message?.includes('Connection terminated unexpectedly')) return;
+
+  // Log anything else; don't crash.
+  console.error('pg Pool error:', err);
+});
+
 export { db, pool };
