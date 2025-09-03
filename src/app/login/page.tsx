@@ -16,10 +16,10 @@ export default function LoginPage() {
     try {
       // TODO: Implement login logic
       console.log('Login attempt:', { username });
-      
+
       // Placeholder for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       setError('Login functionality not implemented yet');
     } catch (err) {
       setError('Login failed. Please try again.');

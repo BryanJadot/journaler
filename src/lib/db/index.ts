@@ -1,6 +1,6 @@
+import { Pool } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
-import { Pool } from '@neondatabase/serverless';
 import { Pool as PgPool } from 'pg';
 import * as schema from './schema';
 

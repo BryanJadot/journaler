@@ -1,4 +1,4 @@
-import { streamText, UIMessage, convertToModelMessages } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // (Optional) prefer Edge for low-latency streaming
 export const runtime = 'edge';
@@ -12,11 +12,12 @@ export async function POST(req: Request) {
     model: 'openai/gpt-5',
     messages: convertToModelMessages(messages),
     temperature: 0.1,
-    system: 'Format your responses using markdown. Use **bold**, \
+    system:
+      'Format your responses using markdown. Use **bold**, \
       *italic*, `code`, ```code blocks```, lists, and other markdown elements to \
       make your responses clear and well-formatted. \
       Unless it does not make sense at all, your responses need to be structured \
-      with good headers and subheaders.'
+      with good headers and subheaders.',
   });
 
   // Streams as Server-Sent Events in the AI SDK’s format

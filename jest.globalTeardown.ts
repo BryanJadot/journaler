@@ -16,10 +16,15 @@ const globalTeardown = async () => {
     await pool.end();
 
     console.log(`🧹 Cleaning up test branch: ${process.env.TEST_BRANCH_NAME}`);
-    await execAsync(`npx neonctl branches delete ${process.env.TEST_BRANCH_NAME} --project-id ${process.env.NEON_PROJECT_ID}`);
+    await execAsync(
+      `npx neonctl branches delete ${process.env.TEST_BRANCH_NAME} --project-id ${process.env.NEON_PROJECT_ID}`
+    );
     console.log('✅ Test branch deleted successfully');
   } catch (error) {
-    console.error('❌ Failed to delete test branch:', error instanceof Error ? error.message : String(error));
+    console.error(
+      '❌ Failed to delete test branch:',
+      error instanceof Error ? error.message : String(error)
+    );
   }
 };
 

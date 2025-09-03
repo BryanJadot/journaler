@@ -1,5 +1,5 @@
-import { config } from 'dotenv';
 import { exec } from 'child_process';
+import { config } from 'dotenv';
 import { promisify } from 'util';
 
 config({ path: '.env.local' });
@@ -17,10 +17,14 @@ const globalSetup = async () => {
   try {
     // Create new blank branch (no parent data)
     console.log(`📋 Creating blank test branch: ${branchName}`);
-    await execAsync(`npx neonctl branches create --name ${branchName} --project-id ${process.env.NEON_PROJECT_ID}`);
+    await execAsync(
+      `npx neonctl branches create --name ${branchName} --project-id ${process.env.NEON_PROJECT_ID}`
+    );
 
     // Get the connection string for the new branch
-    const { stdout } = await execAsync(`npx neonctl connection-string ${branchName} --project-id ${process.env.NEON_PROJECT_ID} --pooled`);
+    const { stdout } = await execAsync(
+      `npx neonctl connection-string ${branchName} --project-id ${process.env.NEON_PROJECT_ID} --pooled`
+    );
     const testDatabaseUrl = stdout.trim();
 
     // Set environment variables for tests
@@ -32,9 +36,11 @@ const globalSetup = async () => {
     await execAsync('npx drizzle-kit migrate');
 
     console.log(`✅ Test environment ready! Branch: ${branchName}`);
-
   } catch (error) {
-    console.error('❌ Failed to set up test environment:', error instanceof Error ? error.message : String(error));
+    console.error(
+      '❌ Failed to set up test environment:',
+      error instanceof Error ? error.message : String(error)
+    );
     process.exit(1);
   }
 };

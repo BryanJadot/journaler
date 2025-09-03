@@ -19,6 +19,6 @@ export enum AuthError {
   INVALID_PASSWORD = 'INVALID_PASSWORD',
 }
 
-export type AuthenticationResult = 
+export type AuthenticationResult =
   | { success: true; user: User }
-  | { success: false; error: AuthError }
+  | { success: false; error: AuthError };
