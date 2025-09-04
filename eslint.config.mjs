@@ -23,6 +23,13 @@ const eslintConfig = [
   },
   {
     rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       'import/order': [
         'error',
         {

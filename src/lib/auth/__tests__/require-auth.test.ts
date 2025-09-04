@@ -34,7 +34,7 @@ describe('requireAuth', () => {
     const wrappedHandler = requireAuth(mockHandler);
     await wrappedHandler(mockRequest);
 
-    expect(mockHandler).toHaveBeenCalledWith(mockRequest, userId);
+    expect(mockHandler).toHaveBeenCalledWith({ request: mockRequest, userId });
   });
 
   it('should return 401 when no token is present', async () => {

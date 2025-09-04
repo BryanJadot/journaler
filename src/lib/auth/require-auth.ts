@@ -7,14 +7,15 @@ import { verifyAuthToken } from './jwt';
  * Represents a handler function for authenticated routes that receives a request and user ID.
  *
  * @typedef {Function} AuthenticatedHandler
- * @param {NextRequest} request - The incoming Next.js server request
- * @param {string} userId - The authenticated user's unique identifier
+ * @param {Object} params - Parameters object
+ * @param {NextRequest} params.request - The incoming Next.js server request
+ * @param {string} params.userId - The authenticated user's unique identifier
  * @returns {Promise<NextResponse> | NextResponse} The response to be sent back to the client
  */
-export type AuthenticatedHandler = (
-  request: NextRequest,
-  userId: string
-) => Promise<NextResponse | Response> | NextResponse | Response;
+export type AuthenticatedHandler = (params: {
+  request: NextRequest;
+  userId: string;
+}) => Promise<NextResponse | Response> | NextResponse | Response;
 
 /**
  * A higher-order function that wraps API route handlers with authentication middleware.
@@ -34,7 +35,7 @@ export type AuthenticatedHandler = (
  *
  * @example
  * // Wrap an existing API route handler with authentication
- * export const GET = requireAuth(async (request, userId) => {
+ * export const GET = requireAuth(async ({ request, userId }) => {
  *   // This handler will only be called for authenticated requests
  *   return NextResponse.json({ message: 'Protected route', userId });
  * });
@@ -59,6 +60,6 @@ export function requireAuth(handler: AuthenticatedHandler) {
       );
     }
 
-    return handler(request, verificationResult.payload.userId);
+    return handler({ request, userId: verificationResult.payload.userId });
   };
 }
