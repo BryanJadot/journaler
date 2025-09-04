@@ -87,11 +87,13 @@ export async function createAuthToken(user: User): Promise<string> {
 /**
  * Validates the structure of an authentication token payload
  * Performs runtime type checking to ensure payload integrity
+ * Uses type guard pattern to validate object shape and primitive types
  *
  * @param {unknown} payload - Token payload to validate
  * @returns {boolean} Whether payload matches AuthTokenPayload structure
- *
  * @internal
+ * @private
+ * @throws {TypeError} If payload does not match expected structure
  */
 function isValidAuthTokenPayload(
   payload: unknown
@@ -145,7 +147,7 @@ export async function verifyAuthToken(
     // Reject tokens with invalid payload structure
     return { success: false, error: TokenVerificationError.INVALID_PAYLOAD };
   } catch {
-    // Catch any verification errors (signature mismatch, expired token)
+    // Catch any verification errors (signature mismatch, expired token, algorithm mismatch)
     return { success: false, error: TokenVerificationError.INVALID_TOKEN };
   }
 }

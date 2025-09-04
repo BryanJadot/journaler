@@ -14,6 +14,8 @@ import { NextRequest, NextResponse } from 'next/server';
  * - Trims and checks for non-empty credentials
  *
  * @throws {Error} When request body cannot be parsed as JSON
+ * @internal
+ * @category Validation
  *
  * @example
  * // Valid request
@@ -71,5 +73,6 @@ export async function validateRequestFormat(
     };
   }
 
+  // Validation successful, return sanitized username and password
   return { valid: true, username, password };
 }

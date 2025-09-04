@@ -5,10 +5,28 @@ import { db } from '../db';
 import type { CreateUserData, User } from './types';
 import { users } from '../db/schema';
 
+/**
+ * Creates a new user in the database with a securely hashed password
+ *
+ * @param {CreateUserData} userData - The data required to create a new user
+ * @returns {Promise<User>} The newly created user with sensitive information omitted
+ *
+ * @throws {Error} If database insertion fails or password hashing encounters an issue
+ *
+ * @description
+ * - Hashes the password using bcrypt with 12 rounds of salt
+ * - Stores the username and password hash in the database
+ * - Returns the user object without the password hash
+ *
+ * @example
+ * const newUser = await createUser({ username: 'johndoe', password: 'securepass123' });
+ */
 export async function createUser(userData: CreateUserData): Promise<User> {
+  // Generate a secure password hash using bcrypt
   const hashedPassword = await bcrypt.hash(userData.password, 12);
   const database = db;
 
+  // Insert user into database and return the created user object
   const [user] = await database
     .insert(users)
     .values({
@@ -24,7 +42,25 @@ export async function createUser(userData: CreateUserData): Promise<User> {
   return user;
 }
 
+/**
+ * Retrieves a user from the database by their unique identifier
+ *
+ * @param {string} id - The unique identifier of the user
+ * @returns {Promise<User | null>} The user object if found, null otherwise
+ *
+ * @description
+ * - Queries the users table using the provided ID
+ * - Returns only non-sensitive user information
+ * - Returns null if no user is found with the given ID
+ *
+ * @example
+ * const user = await getUserById('user123');
+ * if (user) {
+ *   // User found, proceed with operations
+ * }
+ */
 export async function getUserById(id: string): Promise<User | null> {
+  // Select specific user fields to avoid exposing sensitive information
   const [user] = await db
     .select({
       id: users.id,
