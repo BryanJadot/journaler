@@ -1,33 +1,85 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+/**
+ * LoginPage component
+ * Renders a login form with username and password inputs
+ * Handles user authentication, state management, and navigation
+ *
+ * Component responsibilities:
+ * - Capture user credentials
+ * - Submit login request to backend API
+ * - Handle loading and error states
+ * - Redirect on successful authentication
+ *
+ * @component
+ * @returns {React.ReactElement} Login page with authentication form
+ */
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  // State management for login form
+  const [username, setUsername] = useState(''); // Username input
+  const [password, setPassword] = useState(''); // Password input
+  const [error, setError] = useState(''); // Error message state
+  const [isLoading, setIsLoading] = useState(false); // Loading state
 
+  // Next.js router for programmatic navigation
+  const router = useRouter();
+
+  /**
+   * Handles form submission and user authentication
+   * Prevents default form submission, validates inputs, and calls login API
+   *
+   * Authentication flow:
+   * 1. Prevent default form submission
+   * 2. Reset previous errors
+   * 3. Set loading state
+   * 4. Send login request to backend
+   * 5. Handle success or failure scenarios
+   *
+   * @param {React.FormEvent} e - Form submission event
+   * @returns {Promise<void>}
+   */
   const handleSubmit = async (e: React.FormEvent) => {
+    // Prevent standard form submission
     e.preventDefault();
+
+    // Reset error state before new submission
     setError('');
+
+    // Indicate loading state
     setIsLoading(true);
 
     try {
-      // TODO: Implement login logic
-      console.log('Login attempt:', { username });
+      // Send login request to authentication endpoint
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
 
-      // Placeholder for now
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Parse response data
+      const data = await response.json();
 
-      setError('Login functionality not implemented yet');
-    } catch (err) {
+      // Handle authentication result
+      if (data.success) {
+        // Successful login: Navigate to home page
+        router.push('/');
+      } else {
+        // Login failed: Display error message
+        setError(data.error || 'Login failed. Please try again.');
+      }
+    } catch {
+      // Network or unexpected error
       setError('Login failed. Please try again.');
     } finally {
+      // Reset loading state
       setIsLoading(false);
     }
   };
 
+  // Render login form with dynamic states
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8">
@@ -38,6 +90,7 @@ export default function LoginPage() {
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
+            {/* Username Input */}
             <div>
               <label htmlFor="username" className="sr-only">
                 Username
@@ -53,6 +106,8 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
               />
             </div>
+
+            {/* Password Input */}
             <div>
               <label htmlFor="password" className="sr-only">
                 Password
@@ -70,12 +125,14 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Error Message Display */}
           {error && (
             <div className="rounded-md bg-red-50 p-4">
               <div className="text-sm text-red-700">{error}</div>
             </div>
           )}
 
+          {/* Submit Button */}
           <div>
             <button
               type="submit"
