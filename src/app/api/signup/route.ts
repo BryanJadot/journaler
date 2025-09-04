@@ -86,7 +86,8 @@ export async function POST(request: NextRequest) {
         { status: statusCode }
       );
     }
-  } catch {
+  } catch (error) {
+    console.error('Signup error:', error);
     return NextResponse.json(
       {
         success: false,

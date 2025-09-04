@@ -63,8 +63,9 @@ export async function POST(request: NextRequest) {
         { status: 401 } // Unauthorized status code
       );
     }
-  } catch {
+  } catch (error) {
     // Handle service errors (database failures, etc.)
+    console.error('Login error:', error);
     return NextResponse.json(
       {
         success: false,
