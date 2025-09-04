@@ -14,7 +14,7 @@ import { verifyAuthToken } from './jwt';
 export type AuthenticatedHandler = (
   request: NextRequest,
   userId: string
-) => Promise<NextResponse> | NextResponse;
+) => Promise<NextResponse | Response> | NextResponse | Response;
 
 /**
  * A higher-order function that wraps API route handlers with authentication middleware.
@@ -40,7 +40,7 @@ export type AuthenticatedHandler = (
  * });
  */
 export function requireAuth(handler: AuthenticatedHandler) {
-  return async (request: NextRequest): Promise<NextResponse> => {
+  return async (request: NextRequest): Promise<NextResponse | Response> => {
     const token = await getAuthToken();
 
     if (!token) {

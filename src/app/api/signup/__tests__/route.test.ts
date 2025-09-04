@@ -6,7 +6,7 @@ import {
   it,
   jest,
 } from '@jest/globals';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 import { createMockUser } from '@/__tests__/helpers/user';
 import { setAuthCookie } from '@/lib/auth/cookies';
@@ -15,12 +15,6 @@ import { signupUser } from '@/lib/auth/service';
 import { SignupError } from '@/lib/user/types';
 
 import { POST } from '../route';
-
-// Type for mock error responses
-type MockErrorResponse = {
-  status: number;
-  json: jest.MockedFunction<() => Promise<unknown>>;
-};
 
 // Mock dependencies
 jest.mock('@/lib/auth/service', () => ({
@@ -204,13 +198,13 @@ describe('Signup API Route', () => {
 
   describe('validation errors', () => {
     it('should return validation error response when validation fails', async () => {
-      const errorResponse: MockErrorResponse = {
-        status: 400,
-        json: jest.fn().mockResolvedValue({
+      const errorResponse = NextResponse.json(
+        {
           success: false,
           error: 'Username and password are required',
-        }),
-      };
+        },
+        { status: 400 }
+      );
 
       mockValidateRequestFormat.mockResolvedValue({
         valid: false,
@@ -230,13 +224,13 @@ describe('Signup API Route', () => {
     });
 
     it('should handle invalid JSON validation error', async () => {
-      const errorResponse: MockErrorResponse = {
-        status: 400,
-        json: jest.fn().mockResolvedValue({
+      const errorResponse = NextResponse.json(
+        {
           success: false,
           error: 'Invalid JSON in request body',
-        }),
-      };
+        },
+        { status: 400 }
+      );
 
       mockValidateRequestFormat.mockResolvedValue({
         valid: false,
@@ -633,13 +627,13 @@ describe('Signup API Route', () => {
     });
 
     it('should not attempt to set cookie on validation failure', async () => {
-      const errorResponse: MockErrorResponse = {
-        status: 400,
-        json: jest.fn().mockResolvedValue({
+      const errorResponse = NextResponse.json(
+        {
           success: false,
           error: 'Validation failed',
-        }),
-      };
+        },
+        { status: 400 }
+      );
 
       mockValidateRequestFormat.mockResolvedValue({
         valid: false,

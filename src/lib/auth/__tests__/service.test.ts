@@ -1,7 +1,7 @@
 import { createMockUserWithPassword } from '@/__tests__/helpers/user';
 import { createUser } from '@/lib/user/service';
 import * as userServiceModule from '@/lib/user/service';
-import { LoginError, SignupError } from '@/lib/user/types';
+import { LoginError, SignupError, User } from '@/lib/user/types';
 
 import { loginUser, signupUser } from '../service';
 
@@ -436,7 +436,9 @@ describe('signupUser', () => {
       const result = await signupUser(userData);
 
       expect(result.success).toBe(true);
-      expect(result.user?.username).toContain('👤');
+
+      const successResult = result as { success: true; user: User };
+      expect(successResult.user.username).toContain('👤');
     });
 
     it('should handle username starting with numbers', async () => {
@@ -448,7 +450,9 @@ describe('signupUser', () => {
       const result = await signupUser(userData);
 
       expect(result.success).toBe(true);
-      expect(result.user?.username).toMatch(/^123user_/);
+
+      const successResult = result as { success: true; user: User };
+      expect(successResult.user.username).toMatch(/^123user_/);
     });
 
     it('should handle username with special characters but no spaces', async () => {
@@ -539,7 +543,12 @@ describe('signupUser', () => {
       });
 
       expect(loginResultTrimmed.success).toBe(false);
-      expect(loginResultTrimmed.error).toBe(LoginError.INVALID_PASSWORD);
+
+      const failureResult = loginResultTrimmed as {
+        success: false;
+        error: LoginError;
+      };
+      expect(failureResult.error).toBe(LoginError.INVALID_PASSWORD);
     });
 
     it('should handle case-sensitive password authentication', async () => {
@@ -569,7 +578,12 @@ describe('signupUser', () => {
       });
 
       expect(wrongCaseResult.success).toBe(false);
-      expect(wrongCaseResult.error).toBe(LoginError.INVALID_PASSWORD);
+
+      const wrongCaseFailure = wrongCaseResult as {
+        success: false;
+        error: LoginError;
+      };
+      expect(wrongCaseFailure.error).toBe(LoginError.INVALID_PASSWORD);
     });
   });
 
@@ -597,7 +611,9 @@ describe('signupUser', () => {
       // All concurrent attempts should fail with USERNAME_TAKEN
       results.forEach((result) => {
         expect(result.success).toBe(false);
-        expect(result.error).toBe(SignupError.USERNAME_TAKEN);
+
+        const failureResult = result as { success: false; error: SignupError };
+        expect(failureResult.error).toBe(SignupError.USERNAME_TAKEN);
       });
     });
 
@@ -621,7 +637,9 @@ describe('signupUser', () => {
 
       results.forEach((result) => {
         expect(result.success).toBe(true);
-        expect(result.user?.username).toBe(mockUserData.user.username);
+
+        const successResult = result as { success: true; user: User };
+        expect(successResult.user.username).toBe(mockUserData.user.username);
       });
     });
   });

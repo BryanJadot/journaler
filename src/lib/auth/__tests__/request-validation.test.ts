@@ -6,7 +6,7 @@ import {
   it,
   jest,
 } from '@jest/globals';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 import { validateRequestFormat } from '../request-validation';
 
@@ -160,14 +160,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Invalid JSON in request body',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error response for incomplete JSON', async () => {
@@ -175,14 +176,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Invalid JSON in request body',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error response for empty request body', async () => {
@@ -190,14 +192,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Invalid JSON in request body',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error response for non-JSON string', async () => {
@@ -205,14 +208,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Invalid JSON in request body',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
   });
 
@@ -226,14 +230,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for missing password', async () => {
@@ -245,14 +250,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for missing both username and password', async () => {
@@ -262,14 +268,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
   });
 
@@ -284,14 +291,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for non-string password', async () => {
@@ -304,14 +312,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for boolean username', async () => {
@@ -324,14 +333,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for null username', async () => {
@@ -344,14 +354,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for array username', async () => {
@@ -364,14 +375,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for object username', async () => {
@@ -384,14 +396,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
   });
 
@@ -406,14 +419,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for empty password string', async () => {
@@ -426,14 +440,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for whitespace-only username', async () => {
@@ -446,14 +461,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for whitespace-only password', async () => {
@@ -466,14 +482,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for tab-only username', async () => {
@@ -486,14 +503,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return error for newline-only password', async () => {
@@ -506,14 +524,15 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
       });
-      expect(result.response.status).toBe(400);
+      expect(failureResult.response.status).toBe(400);
     });
   });
 
@@ -602,9 +621,10 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
 
-      const responseData = await result.response.json();
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      const responseData = await failureResult.response.json();
       expect(responseData).toEqual({
         success: false,
         error: 'Username and password are required',
@@ -618,10 +638,12 @@ describe('validateRequestFormat', () => {
       const result = await validateRequestFormat(request);
 
       expect(result.valid).toBe(false);
-      expect(result.response).toBeDefined();
-      expect(typeof result.response.json).toBe('function');
-      expect(typeof result.response.status).toBe('number');
-      expect(result.response.status).toBe(400);
+
+      const failureResult = result as { valid: false; response: NextResponse };
+      expect(failureResult.response).toBeDefined();
+      expect(typeof failureResult.response.json).toBe('function');
+      expect(typeof failureResult.response.status).toBe('number');
+      expect(failureResult.response.status).toBe(400);
     });
 
     it('should return consistent error structure', async () => {
@@ -643,14 +665,18 @@ describe('validateRequestFormat', () => {
         const result = await validateRequestFormat(request);
 
         expect(result.valid).toBe(false);
-        expect(result.response).toBeDefined();
 
-        const responseData = await result.response.json();
+        const failureResult = result as {
+          valid: false;
+          response: NextResponse;
+        };
+        expect(failureResult.response).toBeDefined();
+        const responseData = await failureResult.response.json();
         expect(responseData).toMatchObject({
           success: false,
           error: testCase.expectedError,
         });
-        expect(result.response.status).toBe(400);
+        expect(failureResult.response.status).toBe(400);
       }
     });
   });
