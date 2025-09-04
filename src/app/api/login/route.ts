@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-
 import { setAuthCookie } from '@/lib/auth/cookies';
-import { authenticateUser } from '@/lib/user/service';
+import { loginUser } from '@/lib/auth/service';
+import { validateRequestFormat } from '@/lib/auth/request-validation';
 
 /**
  * Handles user login via HTTP POST request
@@ -27,43 +27,16 @@ import { authenticateUser } from '@/lib/user/service';
  * }
  */
 export async function POST(request: NextRequest) {
-  // Extract login credentials from request body
-  let username, password;
-
-  try {
-    ({ username, password } = await request.json());
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Invalid JSON in request body',
-      },
-      { status: 400 }
-    );
+  const validation = await validateRequestFormat(request);
+  if (!validation.valid) {
+    return validation.response;
   }
 
-  // Validate input: Ensure username and password are provided, are strings, and not just whitespace
-  if (
-    !username ||
-    !password ||
-    typeof username !== 'string' ||
-    typeof password !== 'string' ||
-    !username.trim() ||
-    !password.trim()
-  ) {
-    // Respond with 400 Bad Request if credentials are incomplete
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Username and password are required',
-      },
-      { status: 400 } // Bad Request status code
-    );
-  }
+  const { username, password } = validation;
 
   try {
     // Attempt to authenticate user using credentials
-    const result = await authenticateUser({ username, password });
+    const result = await loginUser({ username, password });
 
     // Handle authentication result
     if (result.success) {

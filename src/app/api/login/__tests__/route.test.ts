@@ -1,3 +1,5 @@
+import { createMockUser } from '@/__tests__/helpers/user';
+import { LoginError } from '@/lib/user/types';
 import {
   afterEach,
   beforeEach,
@@ -8,25 +10,22 @@ import {
 } from '@jest/globals';
 import { NextRequest } from 'next/server';
 
-import { createMockUser } from '@/__tests__/helpers/user';
-import { setAuthCookie } from '@/lib/auth/cookies';
-import { authenticateUser } from '@/lib/user/service';
-import { AuthError } from '@/lib/user/types';
-
 import { POST } from '../route';
 
 // Mock dependencies
-jest.mock('@/lib/user/service', () => ({
-  authenticateUser: jest.fn(),
+jest.mock('@/lib/auth/service', () => ({
+  loginUser: jest.fn(),
 }));
 
 jest.mock('@/lib/auth/cookies', () => ({
   setAuthCookie: jest.fn(),
 }));
 
-const mockAuthenticateUser = authenticateUser as jest.MockedFunction<
-  typeof authenticateUser
->;
+import { setAuthCookie } from '@/lib/auth/cookies';
+import { loginUser } from '@/lib/auth/service';
+
+const mockLoginUser = loginUser as jest.MockedFunction<typeof loginUser>;
+
 const mockSetAuthCookie = setAuthCookie as jest.MockedFunction<
   typeof setAuthCookie
 >;
@@ -59,7 +58,7 @@ describe('Login API Route', () => {
   describe('successful authentication', () => {
     it('should return user data and set auth cookie on successful login', async () => {
       const mockUser = createMockUser();
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: true,
         user: mockUser,
       });
@@ -79,7 +78,7 @@ describe('Login API Route', () => {
         },
       });
 
-      expect(mockAuthenticateUser).toHaveBeenCalledWith(validCredentials);
+      expect(mockLoginUser).toHaveBeenCalledWith(validCredentials);
       expect(mockSetAuthCookie).toHaveBeenCalledWith(mockUser);
     });
 
@@ -94,7 +93,7 @@ describe('Login API Route', () => {
         password: 'password123',
       };
 
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: true,
         user: userWithSpecialChars,
       });
@@ -121,7 +120,7 @@ describe('Login API Route', () => {
         password: 'password123',
       };
 
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: true,
         user: userWithUnicode,
       });
@@ -143,7 +142,7 @@ describe('Login API Route', () => {
         email: 'test@example.com',
       };
 
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: true,
         user: userWithExtraData,
       });
@@ -182,7 +181,7 @@ describe('Login API Route', () => {
         error: 'Username and password are required',
       });
 
-      expect(mockAuthenticateUser).not.toHaveBeenCalled();
+      expect(mockLoginUser).not.toHaveBeenCalled();
       expect(mockSetAuthCookie).not.toHaveBeenCalled();
     });
 
@@ -202,7 +201,7 @@ describe('Login API Route', () => {
         error: 'Username and password are required',
       });
 
-      expect(mockAuthenticateUser).not.toHaveBeenCalled();
+      expect(mockLoginUser).not.toHaveBeenCalled();
       expect(mockSetAuthCookie).not.toHaveBeenCalled();
     });
 
@@ -281,9 +280,9 @@ describe('Login API Route', () => {
 
   describe('authentication failures', () => {
     it('should return 401 for user not found', async () => {
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: false,
-        error: AuthError.USER_NOT_FOUND,
+        error: LoginError.USER_NOT_FOUND,
       });
 
       const request = createMockRequest({
@@ -298,10 +297,10 @@ describe('Login API Route', () => {
       const responseData = await response.json();
       expect(responseData).toEqual({
         success: false,
-        error: AuthError.USER_NOT_FOUND,
+        error: LoginError.USER_NOT_FOUND,
       });
 
-      expect(mockAuthenticateUser).toHaveBeenCalledWith({
+      expect(mockLoginUser).toHaveBeenCalledWith({
         username: 'nonexistentuser',
         password: 'password123',
       });
@@ -310,9 +309,9 @@ describe('Login API Route', () => {
     });
 
     it('should return 401 for invalid password', async () => {
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: false,
-        error: AuthError.INVALID_PASSWORD,
+        error: LoginError.INVALID_PASSWORD,
       });
 
       const request = createMockRequest({
@@ -327,7 +326,7 @@ describe('Login API Route', () => {
       const responseData = await response.json();
       expect(responseData).toEqual({
         success: false,
-        error: AuthError.INVALID_PASSWORD,
+        error: LoginError.INVALID_PASSWORD,
       });
 
       expect(mockSetAuthCookie).not.toHaveBeenCalled();
@@ -373,7 +372,7 @@ describe('Login API Route', () => {
       });
 
       const mockUser = createMockUser();
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: true,
         user: mockUser,
       });
@@ -383,7 +382,7 @@ describe('Login API Route', () => {
       expect(response.status).toBe(200);
 
       // Should only pass username and password to authenticateUser
-      expect(mockAuthenticateUser).toHaveBeenCalledWith({
+      expect(mockLoginUser).toHaveBeenCalledWith({
         username: 'testuser',
         password: 'password123',
       });
@@ -392,9 +391,7 @@ describe('Login API Route', () => {
 
   describe('service integration errors', () => {
     it('should handle authenticateUser service failure', async () => {
-      mockAuthenticateUser.mockRejectedValue(
-        new Error('Database connection failed')
-      );
+      mockLoginUser.mockRejectedValue(new Error('Database connection failed'));
 
       const request = createMockRequest(validCredentials);
       const response = await POST(request);
@@ -404,7 +401,7 @@ describe('Login API Route', () => {
 
     it('should handle setAuthCookie failure', async () => {
       const mockUser = createMockUser();
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: true,
         user: mockUser,
       });
@@ -419,7 +416,7 @@ describe('Login API Route', () => {
 
     it('should handle setAuthCookie failure after successful authentication', async () => {
       const mockUser = createMockUser();
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: true,
         user: mockUser,
       });
@@ -431,7 +428,7 @@ describe('Login API Route', () => {
 
       expect(response.status).toBe(500);
 
-      expect(mockAuthenticateUser).toHaveBeenCalledWith(validCredentials);
+      expect(mockLoginUser).toHaveBeenCalledWith(validCredentials);
       expect(mockSetAuthCookie).toHaveBeenCalledWith(mockUser);
     });
   });
@@ -444,15 +441,15 @@ describe('Login API Route', () => {
         password: 'password123',
       });
 
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: false,
-        error: AuthError.USER_NOT_FOUND,
+        error: LoginError.USER_NOT_FOUND,
       });
 
       const response = await POST(request);
 
       expect(response.status).toBe(401);
-      expect(mockAuthenticateUser).toHaveBeenCalledWith({
+      expect(mockLoginUser).toHaveBeenCalledWith({
         username: longUsername,
         password: 'password123',
       });
@@ -465,15 +462,15 @@ describe('Login API Route', () => {
         password: longPassword,
       });
 
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: false,
-        error: AuthError.INVALID_PASSWORD,
+        error: LoginError.INVALID_PASSWORD,
       });
 
       const response = await POST(request);
 
       expect(response.status).toBe(401);
-      expect(mockAuthenticateUser).toHaveBeenCalledWith({
+      expect(mockLoginUser).toHaveBeenCalledWith({
         username: 'testuser',
         password: longPassword,
       });
@@ -485,7 +482,7 @@ describe('Login API Route', () => {
         password: 'p@ssw0rd!#$%^&*()',
       });
 
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: true,
         user: { ...createMockUser(), username: 'test@user.com+123' },
       });
@@ -493,7 +490,7 @@ describe('Login API Route', () => {
       const response = await POST(request);
 
       expect(response.status).toBe(200);
-      expect(mockAuthenticateUser).toHaveBeenCalledWith({
+      expect(mockLoginUser).toHaveBeenCalledWith({
         username: 'test@user.com+123',
         password: 'p@ssw0rd!#$%^&*()',
       });
@@ -508,7 +505,7 @@ describe('Login API Route', () => {
       const response = await POST(request);
 
       expect(response.status).toBe(400);
-      expect(mockAuthenticateUser).not.toHaveBeenCalled();
+      expect(mockLoginUser).not.toHaveBeenCalled();
     });
 
     it('should handle numeric values for credentials', async () => {
@@ -520,7 +517,7 @@ describe('Login API Route', () => {
       const response = await POST(request);
 
       expect(response.status).toBe(400);
-      expect(mockAuthenticateUser).not.toHaveBeenCalled();
+      expect(mockLoginUser).not.toHaveBeenCalled();
     });
 
     it('should handle array values for credentials', async () => {
@@ -532,7 +529,7 @@ describe('Login API Route', () => {
       const response = await POST(request);
 
       expect(response.status).toBe(400);
-      expect(mockAuthenticateUser).not.toHaveBeenCalled();
+      expect(mockLoginUser).not.toHaveBeenCalled();
     });
 
     it('should handle object values for credentials', async () => {
@@ -544,7 +541,7 @@ describe('Login API Route', () => {
       const response = await POST(request);
 
       expect(response.status).toBe(400);
-      expect(mockAuthenticateUser).not.toHaveBeenCalled();
+      expect(mockLoginUser).not.toHaveBeenCalled();
     });
   });
 
@@ -555,9 +552,9 @@ describe('Login API Route', () => {
         createMockRequest({ username: 'test', password: 'wrong' }), // Invalid auth
       ];
 
-      mockAuthenticateUser.mockResolvedValue({
+      mockLoginUser.mockResolvedValue({
         success: false,
-        error: AuthError.INVALID_PASSWORD,
+        error: LoginError.INVALID_PASSWORD,
       });
 
       for (const request of requests) {

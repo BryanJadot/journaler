@@ -14,11 +14,23 @@ export interface LoginCredentials {
   password: string;
 }
 
-export enum AuthError {
+// Login-specific errors
+export enum LoginError {
   USER_NOT_FOUND = 'USER_NOT_FOUND',
   INVALID_PASSWORD = 'INVALID_PASSWORD',
 }
 
-export type AuthenticationResult =
+// Signup-specific errors
+export enum SignupError {
+  USERNAME_TAKEN = 'USERNAME_TAKEN',
+  INVALID_USERNAME = 'INVALID_USERNAME',
+  USERNAME_TOO_LONG = 'USERNAME_TOO_LONG',
+}
+
+export type LoginResult =
   | { success: true; user: User }
-  | { success: false; error: AuthError };
+  | { success: false; error: LoginError };
+
+export type SignupResult =
+  | { success: true; user: User }
+  | { success: false; error: SignupError };

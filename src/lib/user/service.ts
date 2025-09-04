@@ -1,15 +1,8 @@
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-
 import { db } from '../db';
-import type {
-  AuthenticationResult,
-  CreateUserData,
-  LoginCredentials,
-  User,
-} from './types';
-import { AuthError } from './types';
 import { users } from '../db/schema';
+import type { CreateUserData, User } from './types';
 
 export async function createUser(userData: CreateUserData): Promise<User> {
   const hashedPassword = await bcrypt.hash(userData.password, 12);
@@ -41,32 +34,4 @@ export async function getUserById(id: string): Promise<User | null> {
     .where(eq(users.id, id));
 
   return user || null;
-}
-
-export async function authenticateUser(
-  credentials: LoginCredentials
-): Promise<AuthenticationResult> {
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.username, credentials.username));
-
-  if (!user) {
-    return { success: false, error: AuthError.USER_NOT_FOUND };
-  }
-
-  const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
-
-  if (!isValid) {
-    return { success: false, error: AuthError.INVALID_PASSWORD };
-  }
-
-  return {
-    success: true,
-    user: {
-      id: user.id,
-      username: user.username,
-      createdAt: user.createdAt,
-    },
-  };
 }

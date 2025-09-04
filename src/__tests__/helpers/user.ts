@@ -1,4 +1,11 @@
+import bcrypt from 'bcryptjs';
 import type { User } from '@/lib/user/types';
+
+export interface MockUserWithPassword {
+  user: User;
+  password: string;
+  passwordHash: string;
+}
 
 /**
  * Creates a mock user with randomly generated ID and username
@@ -22,4 +29,29 @@ export function createMockUser(): User {
  */
 export function createMockUsers(count: number): User[] {
   return Array.from({ length: count }, () => createMockUser());
+}
+
+/**
+ * Creates a mock user with password information for authentication testing
+ *
+ * @param username Optional username (defaults to random from createMockUser)
+ * @param password Optional password (defaults to 'password123')
+ * @returns Promise resolving to mock user with password data
+ */
+export async function createMockUserWithPassword(
+  username?: string,
+  password: string = 'password123'
+): Promise<MockUserWithPassword> {
+  const passwordHash = await bcrypt.hash(password, 12);
+  const user = createMockUser();
+
+  if (username) {
+    user.username = username;
+  }
+
+  return {
+    user,
+    password,
+    passwordHash,
+  };
 }

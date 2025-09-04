@@ -1,10 +1,8 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import { eq } from 'drizzle-orm';
-
 import { db } from '../../db';
 import { users } from '../../db/schema';
-import { createUser, getUserById, authenticateUser } from '../service';
-import { AuthError } from '../types';
+import { createUser, getUserById } from '../service';
 
 const randomUsername = () =>
   `testuser-${Math.random().toString(36).substring(7)}`;
@@ -61,62 +59,6 @@ describe('User Service', () => {
     it('should return null when user not found', async () => {
       const result = await getUserById('d9a66f23-f75e-4ccd-bb95-a81d1810c9b9');
       expect(result).toBeNull();
-    });
-  });
-
-  describe('authenticateUser', () => {
-    it('should return user on successful authentication', async () => {
-      const userData = {
-        username: randomUsername(),
-        password: 'password123',
-      };
-
-      await createUser(userData);
-
-      const result = await authenticateUser({
-        username: userData.username,
-        password: 'password123',
-      });
-
-      expect(result).toMatchObject({
-        success: true,
-        user: {
-          id: expect.any(String),
-          username: userData.username,
-          createdAt: expect.any(Date),
-        },
-      });
-    });
-
-    it('should return USER_NOT_FOUND for non-existent user', async () => {
-      const result = await authenticateUser({
-        username: randomUsername(),
-        password: 'password123',
-      });
-
-      expect(result).toEqual({
-        success: false,
-        error: AuthError.USER_NOT_FOUND,
-      });
-    });
-
-    it('should return INVALID_PASSWORD for wrong password', async () => {
-      const userData = {
-        username: randomUsername(),
-        password: 'password123',
-      };
-
-      await createUser(userData);
-
-      const result = await authenticateUser({
-        username: userData.username,
-        password: 'wrongpassword',
-      });
-
-      expect(result).toEqual({
-        success: false,
-        error: AuthError.INVALID_PASSWORD,
-      });
     });
   });
 });
