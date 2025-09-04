@@ -3,10 +3,45 @@ import { createUser } from '@/lib/user/service';
 import * as userServiceModule from '@/lib/user/service';
 import { LoginError, SignupError, User } from '@/lib/user/types';
 
-import { loginUser, signupUser } from '../service';
+import { isSignupEnabled, loginUser, signupUser } from '../service';
 
 const randomUsername = () =>
   `testuser-${Math.random().toString(36).substring(7)}`;
+
+describe('isSignupEnabled', () => {
+  const originalEnv = process.env;
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it('should return true when ENABLE_SIGNUP is exactly "true"', () => {
+    process.env.ENABLE_SIGNUP = 'true';
+    expect(isSignupEnabled()).toBe(true);
+  });
+
+  it('should return false for all other values', () => {
+    const testValues = [
+      'false',
+      'TRUE',
+      'True',
+      '1',
+      'yes',
+      'enabled',
+      '',
+      undefined,
+    ];
+
+    testValues.forEach((value) => {
+      if (value === undefined) {
+        delete process.env.ENABLE_SIGNUP;
+      } else {
+        process.env.ENABLE_SIGNUP = value;
+      }
+      expect(isSignupEnabled()).toBe(false);
+    });
+  });
+});
 
 describe('authenticateUser', () => {
   it('should return user on successful authentication', async () => {

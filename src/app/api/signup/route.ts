@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { setAuthCookie } from '@/lib/auth/cookies';
 import { validateRequestFormat } from '@/lib/auth/request-validation';
-import { signupUser } from '@/lib/auth/service';
+import { isSignupEnabled, signupUser } from '@/lib/auth/service';
 import { SignupError } from '@/lib/user/types';
 
 /**
@@ -40,6 +40,17 @@ import { SignupError } from '@/lib/user/types';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check if signup is enabled via environment variable
+    if (!isSignupEnabled()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Signup is currently disabled',
+        },
+        { status: 403 }
+      );
+    }
+
     const validation = await validateRequestFormat(request);
     if (!validation.valid) {
       return validation.response;

@@ -13,13 +13,19 @@ import type {
 import { LoginError, SignupError } from '../user/types';
 
 /**
+ * Checks if user signup is enabled via environment variable
+ * @returns true if ENABLE_SIGNUP is exactly "true", false otherwise
+ */
+export function isSignupEnabled(): boolean {
+  return process.env.ENABLE_SIGNUP === 'true';
+}
+
+/**
  * Validates username format and constraints
  * @param username - The username to validate
  * @returns Object with validation result and error type if invalid
  */
-function validateUsername(
-  username: string
-):
+function validateUsername(username: string):
   | { valid: true }
   | {
       valid: false;

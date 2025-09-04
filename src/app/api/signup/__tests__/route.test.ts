@@ -11,13 +11,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createMockUser } from '@/__tests__/helpers/user';
 import { setAuthCookie } from '@/lib/auth/cookies';
 import { validateRequestFormat } from '@/lib/auth/request-validation';
-import { signupUser } from '@/lib/auth/service';
+import { isSignupEnabled, signupUser } from '@/lib/auth/service';
 import { SignupError } from '@/lib/user/types';
 
 import { POST } from '../route';
 
 // Mock dependencies
 jest.mock('@/lib/auth/service', () => ({
+  isSignupEnabled: jest.fn(),
   signupUser: jest.fn(),
 }));
 
@@ -29,6 +30,9 @@ jest.mock('@/lib/auth/request-validation', () => ({
   validateRequestFormat: jest.fn(),
 }));
 
+const mockIsSignupEnabled = isSignupEnabled as jest.MockedFunction<
+  typeof isSignupEnabled
+>;
 const mockSignupUser = signupUser as jest.MockedFunction<typeof signupUser>;
 const mockSetAuthCookie = setAuthCookie as jest.MockedFunction<
   typeof setAuthCookie
@@ -45,6 +49,8 @@ describe('Signup API Route', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default to signup enabled
+    mockIsSignupEnabled.mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -583,6 +589,57 @@ describe('Signup API Route', () => {
         success: false,
         error: 'Internal server error',
       });
+    });
+  });
+
+  describe('signup enable/disable functionality', () => {
+    it('should return 403 when signup is disabled', async () => {
+      mockIsSignupEnabled.mockReturnValue(false);
+
+      const request = createMockRequest(validCredentials);
+      const response = await POST(request);
+
+      expect(response.status).toBe(403);
+
+      const responseData = await response.json();
+      expect(responseData).toEqual({
+        success: false,
+        error: 'Signup is currently disabled',
+      });
+
+      expect(mockIsSignupEnabled).toHaveBeenCalled();
+      expect(mockValidateRequestFormat).not.toHaveBeenCalled();
+      expect(mockSignupUser).not.toHaveBeenCalled();
+      expect(mockSetAuthCookie).not.toHaveBeenCalled();
+    });
+
+    it('should proceed normally when signup is enabled', async () => {
+      mockIsSignupEnabled.mockReturnValue(true);
+      const mockUser = createMockUser();
+
+      mockValidateRequestFormat.mockResolvedValue({
+        valid: true,
+        username: validCredentials.username,
+        password: validCredentials.password,
+      });
+
+      mockSignupUser.mockResolvedValue({
+        success: true,
+        user: mockUser,
+      });
+
+      const request = createMockRequest(validCredentials);
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+
+      const responseData = await response.json();
+      expect(responseData.success).toBe(true);
+
+      expect(mockIsSignupEnabled).toHaveBeenCalled();
+      expect(mockValidateRequestFormat).toHaveBeenCalled();
+      expect(mockSignupUser).toHaveBeenCalled();
+      expect(mockSetAuthCookie).toHaveBeenCalled();
     });
   });
 
