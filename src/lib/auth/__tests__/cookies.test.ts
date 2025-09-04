@@ -1,5 +1,3 @@
-import { createMockUser } from '@/__tests__/helpers/user';
-import type { User } from '@/lib/user/types';
 import {
   afterEach,
   beforeEach,
@@ -8,6 +6,12 @@ import {
   it,
   jest,
 } from '@jest/globals';
+import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies';
+import { cookies } from 'next/headers';
+
+import { createMockUser } from '@/__tests__/helpers/user';
+import type { User } from '@/lib/user/types';
+
 import { clearAuthCookie, getAuthToken, setAuthCookie } from '../cookies';
 import { createAuthToken } from '../jwt';
 
@@ -21,9 +25,6 @@ const mockCookieStore = {
 jest.mock('next/headers', () => ({
   cookies: jest.fn(),
 }));
-
-import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies';
-import { cookies } from 'next/headers';
 
 // Mock JWT functions for isolation
 jest.mock('../jwt', () => ({

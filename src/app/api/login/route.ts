@@ -1,6 +1,7 @@
+import { NextRequest, NextResponse } from 'next/server';
+
 import { setAuthCookie } from '@/lib/auth/cookies';
 import { authenticateUser } from '@/lib/user/service';
-import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Handles user login via HTTP POST request
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
 
   try {
     ({ username, password } = await request.json());
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         success: false,
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
         { status: 401 } // Unauthorized status code
       );
     }
-  } catch (error) {
+  } catch {
     // Handle service errors (database failures, etc.)
     return NextResponse.json(
       {

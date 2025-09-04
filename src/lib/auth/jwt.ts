@@ -1,5 +1,6 @@
-import type { User } from '@/lib/user/types';
 import { SignJWT, jwtVerify } from 'jose';
+
+import type { User } from '@/lib/user/types';
 
 /**
  * Gets and validates the JWT secret from environment variables

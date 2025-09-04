@@ -1,4 +1,3 @@
-import { AuthError } from '@/lib/user/types';
 import {
   afterEach,
   beforeEach,
@@ -8,8 +7,13 @@ import {
   jest,
 } from '@jest/globals';
 import { NextRequest } from 'next/server';
-import { POST } from '../route';
+
 import { createMockUser } from '@/__tests__/helpers/user';
+import { setAuthCookie } from '@/lib/auth/cookies';
+import { authenticateUser } from '@/lib/user/service';
+import { AuthError } from '@/lib/user/types';
+
+import { POST } from '../route';
 
 // Mock dependencies
 jest.mock('@/lib/user/service', () => ({
@@ -19,9 +23,6 @@ jest.mock('@/lib/user/service', () => ({
 jest.mock('@/lib/auth/cookies', () => ({
   setAuthCookie: jest.fn(),
 }));
-
-import { setAuthCookie } from '@/lib/auth/cookies';
-import { authenticateUser } from '@/lib/user/service';
 
 const mockAuthenticateUser = authenticateUser as jest.MockedFunction<
   typeof authenticateUser

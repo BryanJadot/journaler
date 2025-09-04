@@ -1,11 +1,13 @@
-import type { User } from '@/lib/user/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+
+import { createMockUser } from '@/__tests__/helpers/user';
+import type { User } from '@/lib/user/types';
+
 import {
   createAuthToken,
   TokenVerificationError,
   verifyAuthToken,
 } from '../jwt';
-import { createMockUser } from '@/__tests__/helpers/user';
 
 // Mock environment variable for consistent testing
 const originalEnv = process.env.JWT_SECRET;

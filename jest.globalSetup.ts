@@ -1,6 +1,7 @@
 import { exec } from 'child_process';
-import { config } from 'dotenv';
 import { promisify } from 'util';
+
+import { config } from 'dotenv';
 
 config({ path: '.env.local' });
 

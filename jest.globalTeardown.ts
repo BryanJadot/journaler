@@ -1,5 +1,6 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
+
 import { pool } from './src/lib/db';
 
 const execAsync = promisify(exec);

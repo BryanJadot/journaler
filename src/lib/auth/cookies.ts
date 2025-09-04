@@ -1,5 +1,7 @@
-import type { User } from '@/lib/user/types';
 import { cookies } from 'next/headers';
+
+import type { User } from '@/lib/user/types';
+
 import { createAuthToken } from './jwt';
 
 /** Name of the authentication cookie */
