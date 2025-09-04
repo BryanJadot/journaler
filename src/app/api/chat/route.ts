@@ -1,5 +1,5 @@
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
 import { requireAuth } from '@/lib/auth/require-auth';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // (Optional) prefer Edge for low-latency streaming
 export const runtime = 'edge';
