@@ -62,6 +62,30 @@ describe('authenticateUser', () => {
       error: LoginError.INVALID_PASSWORD,
     });
   });
+
+  it('should return USER_NOT_FOUND for username with spaces (validation)', async () => {
+    const result = await loginUser({
+      username: 'user with spaces',
+      password: 'password123',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: LoginError.USER_NOT_FOUND,
+    });
+  });
+
+  it('should return USER_NOT_FOUND for username over 255 characters', async () => {
+    const result = await loginUser({
+      username: 'a'.repeat(256),
+      password: 'password123',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: LoginError.USER_NOT_FOUND,
+    });
+  });
 });
 
 describe('signupUser', () => {

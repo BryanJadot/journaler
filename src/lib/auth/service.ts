@@ -12,9 +12,43 @@ import type {
 } from '../user/types';
 import { LoginError, SignupError } from '../user/types';
 
+/**
+ * Validates username format and constraints
+ * @param username - The username to validate
+ * @returns Object with validation result and error type if invalid
+ */
+function validateUsername(
+  username: string
+):
+  | { valid: true }
+  | {
+      valid: false;
+      error: SignupError.INVALID_USERNAME | SignupError.USERNAME_TOO_LONG;
+    } {
+  // Check for whitespace characters
+  if (/\s/.test(username)) {
+    return { valid: false, error: SignupError.INVALID_USERNAME };
+  }
+
+  // Check length constraint (database limit)
+  if (username.length > 255) {
+    return { valid: false, error: SignupError.USERNAME_TOO_LONG };
+  }
+
+  return { valid: true };
+}
+
 export async function loginUser(
   credentials: LoginCredentials
 ): Promise<LoginResult> {
+  // Validate username format first
+  const validation = validateUsername(credentials.username);
+  if (!validation.valid) {
+    // For login, we treat all validation errors as USER_NOT_FOUND
+    // This prevents username enumeration attacks
+    return { success: false, error: LoginError.USER_NOT_FOUND };
+  }
+
   const [user] = await db
     .select()
     .from(users)
@@ -78,14 +112,10 @@ export async function loginUser(
 export async function signupUser(
   userData: CreateUserData
 ): Promise<SignupResult> {
-  // Validate username - no whitespace characters allowed
-  if (/\s/.test(userData.username)) {
-    return { success: false, error: SignupError.INVALID_USERNAME };
-  }
-
-  // Validate username length (database limit is 255 characters)
-  if (userData.username.length > 255) {
-    return { success: false, error: SignupError.USERNAME_TOO_LONG };
+  // Validate username format and constraints
+  const validation = validateUsername(userData.username);
+  if (!validation.valid) {
+    return { success: false, error: validation.error };
   }
 
   // Check if username already exists
