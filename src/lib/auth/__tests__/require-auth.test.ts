@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '../require-auth';
+
 import * as cookiesModule from '../cookies';
 import * as jwtModule from '../jwt';
+import { requireAuth } from '../require-auth';
 
 jest.mock('../cookies');
 jest.mock('../jwt');

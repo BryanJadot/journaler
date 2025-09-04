@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
+
 import { db } from '../db';
 import { users } from '../db/schema';
 import { createUser } from '../user/service';

@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { eq } from 'drizzle-orm';
+
 import { db } from '../../db';
 import { users } from '../../db/schema';
 import { createUser, getUserById } from '../service';

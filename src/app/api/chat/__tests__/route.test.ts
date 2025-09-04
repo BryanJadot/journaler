@@ -1,7 +1,9 @@
-import { POST } from '../route';
 import { NextRequest } from 'next/server';
+
 import * as cookiesModule from '@/lib/auth/cookies';
 import * as jwtModule from '@/lib/auth/jwt';
+
+import { POST } from '../route';
 
 jest.mock('@/lib/auth/cookies');
 jest.mock('@/lib/auth/jwt');

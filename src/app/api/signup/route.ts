@@ -1,8 +1,9 @@
-import { setAuthCookie } from '@/lib/auth/cookies';
-import { signupUser } from '@/lib/auth/service';
-import { validateRequestFormat } from '@/lib/auth/request-validation';
-import { SignupError } from '@/lib/user/types';
 import { NextRequest, NextResponse } from 'next/server';
+
+import { setAuthCookie } from '@/lib/auth/cookies';
+import { validateRequestFormat } from '@/lib/auth/request-validation';
+import { signupUser } from '@/lib/auth/service';
+import { SignupError } from '@/lib/user/types';
 
 /**
  * Handles the HTTP POST request for user signup.

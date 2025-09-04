@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { getAuthToken } from './cookies';
 import { verifyAuthToken } from './jwt';
 

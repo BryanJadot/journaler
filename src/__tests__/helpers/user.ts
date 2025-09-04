@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+
 import type { User } from '@/lib/user/types';
 
 export interface MockUserWithPassword {

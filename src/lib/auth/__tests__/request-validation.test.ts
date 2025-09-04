@@ -1,5 +1,3 @@
-import { NextRequest } from 'next/server';
-import { validateRequestFormat } from '../request-validation';
 import {
   afterEach,
   beforeEach,
@@ -8,6 +6,9 @@ import {
   it,
   jest,
 } from '@jest/globals';
+import { NextRequest } from 'next/server';
+
+import { validateRequestFormat } from '../request-validation';
 
 describe('validateRequestFormat', () => {
   beforeEach(() => {

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { setAuthCookie } from '@/lib/auth/cookies';
-import { loginUser } from '@/lib/auth/service';
 import { validateRequestFormat } from '@/lib/auth/request-validation';
+import { loginUser } from '@/lib/auth/service';
 
 /**
  * Handles user login via HTTP POST request

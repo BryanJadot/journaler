@@ -1,8 +1,9 @@
-import { createUser } from '@/lib/user/service';
-import { LoginError, SignupError } from '@/lib/user/types';
-import { loginUser, signupUser } from '../service';
 import { createMockUserWithPassword } from '@/__tests__/helpers/user';
+import { createUser } from '@/lib/user/service';
 import * as userServiceModule from '@/lib/user/service';
+import { LoginError, SignupError } from '@/lib/user/types';
+
+import { loginUser, signupUser } from '../service';
 
 const randomUsername = () =>
   `testuser-${Math.random().toString(36).substring(7)}`;

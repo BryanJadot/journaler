@@ -1,7 +1,9 @@
-import { requireAuthServer } from '../require-auth-server';
+import { redirect } from 'next/navigation';
+
 import * as cookiesModule from '../cookies';
 import * as jwtModule from '../jwt';
-import { redirect } from 'next/navigation';
+import { requireAuthServer } from '../require-auth-server';
+
 
 jest.mock('../cookies');
 jest.mock('../jwt');

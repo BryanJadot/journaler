@@ -1,5 +1,3 @@
-import { createMockUser } from '@/__tests__/helpers/user';
-import { SignupError } from '@/lib/user/types';
 import {
   afterEach,
   beforeEach,
@@ -9,6 +7,13 @@ import {
   jest,
 } from '@jest/globals';
 import { NextRequest } from 'next/server';
+
+import { createMockUser } from '@/__tests__/helpers/user';
+import { setAuthCookie } from '@/lib/auth/cookies';
+import { validateRequestFormat } from '@/lib/auth/request-validation';
+import { signupUser } from '@/lib/auth/service';
+import { SignupError } from '@/lib/user/types';
+
 import { POST } from '../route';
 
 // Type for mock error responses
@@ -29,10 +34,6 @@ jest.mock('@/lib/auth/cookies', () => ({
 jest.mock('@/lib/auth/request-validation', () => ({
   validateRequestFormat: jest.fn(),
 }));
-
-import { setAuthCookie } from '@/lib/auth/cookies';
-import { signupUser } from '@/lib/auth/service';
-import { validateRequestFormat } from '@/lib/auth/request-validation';
 
 const mockSignupUser = signupUser as jest.MockedFunction<typeof signupUser>;
 const mockSetAuthCookie = setAuthCookie as jest.MockedFunction<
