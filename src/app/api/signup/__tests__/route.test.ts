@@ -8,6 +8,7 @@ import {
 } from '@jest/globals';
 import { NextRequest, NextResponse } from 'next/server';
 
+import { silenceConsoleErrors } from '@/__tests__/helpers/console-helpers';
 import { createMockUser } from '@/__tests__/helpers/user';
 import { setAuthCookie } from '@/lib/auth/cookies';
 import { validateRequestFormat } from '@/lib/auth/request-validation';
@@ -42,6 +43,8 @@ const mockValidateRequestFormat = validateRequestFormat as jest.MockedFunction<
 >;
 
 describe('Signup API Route', () => {
+  silenceConsoleErrors();
+
   const validCredentials = {
     username: 'testuser',
     password: 'password123',
