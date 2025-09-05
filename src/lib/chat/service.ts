@@ -45,7 +45,7 @@ export async function getMostRecentThread(userId: string) {
   });
 }
 
-export async function getThreadWithMessages(threadId: number) {
+export async function getThreadWithMessages(threadId: string) {
   return db.query.threads.findFirst({
     where: eq(threads.id, threadId),
     with: {
@@ -57,7 +57,7 @@ export async function getThreadWithMessages(threadId: number) {
 }
 
 export async function saveMessage(
-  threadId: number,
+  threadId: string,
   role: Role,
   content: string,
   outputType: OutputType = 'text'
@@ -83,41 +83,5 @@ export async function saveMessage(
       .where(eq(threads.id, threadId));
 
     return message;
-  });
-}
-
-export async function createThreadWithFirstMessage(
-  userId: string,
-  firstMessage: {
-    role: Role;
-    content: string;
-    outputType: OutputType;
-  }
-) {
-  // Transaction to create thread and first message atomically
-  return await db.transaction(async (tx) => {
-    // Create thread with a default name (can be updated based on first message)
-    const [thread] = await tx
-      .insert(threads)
-      .values({
-        userId,
-        name: 'New Chat', // We can update this later based on the conversation
-        updatedAt: new Date(),
-      })
-      .returning();
-
-    // Create the first message
-    const [message] = await tx
-      .insert(messages)
-      .values({
-        threadId: thread.id,
-        role: firstMessage.role,
-        content: firstMessage.content,
-        outputType: firstMessage.outputType,
-        createdAt: new Date(),
-      })
-      .returning();
-
-    return { thread, message };
   });
 }

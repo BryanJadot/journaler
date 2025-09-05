@@ -1,5 +1,5 @@
 import { requireAuthServer } from '@/lib/auth/require-auth-server';
-import { getMostRecentThread } from '@/lib/chat/service';
+import { getMostRecentThread, createThread } from '@/lib/chat/service';
 
 import ChatInterface from './components/ChatInterface';
 
@@ -8,7 +8,7 @@ export default async function Page() {
   const userId = await requireAuthServer();
 
   // Fetch the most recent thread and its messages on the server
-  let initialThreadId: number | undefined;
+  let initialThreadId: string;
   let initialMessages: Array<{
     id: string;
     role: 'user' | 'assistant' | 'developer';
@@ -26,15 +26,19 @@ export default async function Page() {
         content: msg.content,
         createdAt: msg.createdAt.toISOString(),
       }));
+    } else {
+      // No existing thread, create a new one
+      const newThread = await createThread(userId, 'New Chat');
+      initialThreadId = newThread.id;
     }
   } catch (error) {
-    console.warn('Failed to load recent thread on server:', error);
-    // Continue without initial data - client will create new thread on first message
+    console.error('Failed to load or create thread on server:', error);
+    throw error; // Let error boundary handle this
   }
 
   return (
     <ChatInterface
-      initialThreadId={initialThreadId}
+      threadId={initialThreadId}
       initialMessages={initialMessages}
     />
   );

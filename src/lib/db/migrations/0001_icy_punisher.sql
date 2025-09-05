@@ -2,7 +2,7 @@ CREATE TYPE "public"."output_type" AS ENUM('text', 'error');--> statement-breakp
 CREATE TYPE "public"."role" AS ENUM('user', 'assistant', 'developer');--> statement-breakpoint
 CREATE TABLE "messages" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"thread_id" integer NOT NULL,
+	"thread_id" uuid NOT NULL,
 	"role" "role" NOT NULL,
 	"content" text NOT NULL,
 	"output_type" "output_type" DEFAULT 'text' NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE "messages" (
 );
 --> statement-breakpoint
 CREATE TABLE "threads" (
-	"id" serial PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"user_id" uuid NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL

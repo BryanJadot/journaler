@@ -1,10 +1,6 @@
 import { NextRequest } from 'next/server';
 
-import {
-  createUniqueUserId,
-  createUniqueThreadId,
-  createUniqueMessageId,
-} from '@/__tests__/helpers/test-helpers';
+import { createUniqueUserId } from '@/__tests__/helpers/test-helpers';
 import * as cookiesModule from '@/lib/auth/cookies';
 import * as jwtModule from '@/lib/auth/jwt';
 
@@ -15,10 +11,8 @@ jest.mock('@/lib/auth/jwt');
 
 // Mock the chat service functions
 jest.mock('@/lib/chat/service', () => ({
-  getMostRecentThread: jest.fn(),
-  createThread: jest.fn(),
-  createThreadWithFirstMessage: jest.fn(),
   saveMessage: jest.fn(),
+  getThreadWithMessages: jest.fn(),
 }));
 
 // Mock the AI SDK
@@ -36,26 +30,22 @@ const mockVerifyAuthToken = jwtModule.verifyAuthToken as jest.MockedFunction<
 
 // Get mock chat service functions
 const chatService = jest.requireMock('@/lib/chat/service');
-const mockGetMostRecentThread =
-  chatService.getMostRecentThread as jest.MockedFunction<
-    () => Promise<unknown>
-  >;
-const _mockCreateThread = chatService.createThread as jest.MockedFunction<
-  () => Promise<unknown>
->;
-const mockCreateThreadWithFirstMessage =
-  chatService.createThreadWithFirstMessage as jest.MockedFunction<
-    () => Promise<unknown>
-  >;
 const _mockSaveMessage = chatService.saveMessage as jest.MockedFunction<
   () => Promise<unknown>
 >;
+const mockGetThreadWithMessages =
+  chatService.getThreadWithMessages as jest.MockedFunction<
+    () => Promise<unknown>
+  >;
 
 describe('/api/chat POST', () => {
-  const createRequest = (messages = [{ role: 'user', content: 'Hello' }]) => {
+  const createRequest = (
+    messages = [{ role: 'user', content: 'Hello' }],
+    threadId = '550e8400-e29b-41d4-a716-446655440001'
+  ) => {
     return new NextRequest('http://localhost/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, threadId }),
       headers: { 'Content-Type': 'application/json' },
     });
   };
@@ -63,28 +53,12 @@ describe('/api/chat POST', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Generate unique IDs for each test run
-    const userId = createUniqueUserId();
-    const threadId = createUniqueThreadId();
-    const messageId = createUniqueMessageId();
-
-    // Mock database responses with unique IDs
-    mockGetMostRecentThread.mockResolvedValue(null); // No existing threads
-    mockCreateThreadWithFirstMessage.mockResolvedValue({
-      thread: {
-        id: threadId,
-        name: 'New Chat',
-        userId: userId,
-        updatedAt: new Date(),
-      },
-      message: {
-        id: messageId,
-        threadId: threadId,
-        role: 'user',
-        content: 'Hello, AI!',
-        outputType: 'text',
-        createdAt: new Date(),
-      },
+    // Mock thread ownership validation - return a valid thread for the test user
+    mockGetThreadWithMessages.mockResolvedValue({
+      id: '550e8400-e29b-41d4-a716-446655440001',
+      userId: 'test-user-id',
+      name: 'Test Thread',
+      messages: [],
     });
 
     // Mock successful AI response
@@ -154,6 +128,14 @@ describe('/api/chat POST', () => {
     mockVerifyAuthToken.mockResolvedValue({
       success: true,
       payload: { userId, username: 'testuser' },
+    });
+
+    // Mock thread ownership for this specific user
+    mockGetThreadWithMessages.mockResolvedValue({
+      id: '550e8400-e29b-41d4-a716-446655440001',
+      userId: userId, // Use the same userId as the authenticated user
+      name: 'Test Thread',
+      messages: [],
     });
 
     const messages = [{ role: 'user', content: 'Hello, AI!' }];

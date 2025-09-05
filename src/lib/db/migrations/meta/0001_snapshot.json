@@ -1,5 +1,5 @@
 {
-  "id": "652e0d5c-4076-431f-a034-223b35e088fa",
+  "id": "794fd8dd-f2ff-444a-8c64-9876f419f920",
   "prevId": "943719a4-1d9c-49e4-93e1-87cd6500cda2",
   "version": "7",
   "dialect": "postgresql",
@@ -16,7 +16,7 @@
         },
         "thread_id": {
           "name": "thread_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -73,9 +73,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "name": {
           "name": "name",

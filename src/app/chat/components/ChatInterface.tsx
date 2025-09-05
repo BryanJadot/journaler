@@ -1,11 +1,12 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 interface ChatInterfaceProps {
-  initialThreadId?: number;
+  threadId: string;
   initialMessages?: Array<{
     id: string;
     role: 'user' | 'assistant' | 'developer';
@@ -15,14 +16,17 @@ interface ChatInterfaceProps {
 }
 
 export default function ChatInterface({
-  initialThreadId,
+  threadId,
   initialMessages = [],
 }: ChatInterfaceProps) {
-  const [_currentThreadId, _setCurrentThreadId] = useState<number | undefined>(
-    initialThreadId
-  );
-
-  const { messages, status, sendMessage, setMessages } = useChat();
+  const { messages, status, sendMessage, setMessages } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      body: {
+        threadId,
+      },
+    }),
+  });
 
   // Set initial messages from server on component mount
   React.useEffect(() => {
@@ -52,12 +56,7 @@ export default function ChatInterface({
   return (
     <div className="max-w-4xl mx-auto p-4">
       {/* Thread info display (optional) */}
-      {_currentThreadId && (
-        <div className="text-sm text-gray-500 mb-4">
-          Thread: {_currentThreadId}
-        </div>
-      )}
-
+      <div className="text-sm text-gray-500 mb-4">Thread: {threadId}</div>
       <div className="space-y-4 mb-6">
         {messages.map((message) => (
           <div key={message.id} className="border rounded-lg p-4 shadow-sm">

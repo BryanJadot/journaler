@@ -11,7 +11,6 @@ import {
   getMostRecentThread,
   getThreadWithMessages,
   saveMessage,
-  createThreadWithFirstMessage,
   type Role,
   type OutputType,
 } from '../service';
@@ -80,8 +79,8 @@ describe('Chat Service', () => {
   });
 
   describe('saveMessage', () => {
-    let threadId: number;
-    let otherThreadId: number;
+    let threadId: string;
+    let otherThreadId: string;
 
     beforeEach(async () => {
       const thread = await createThread(testUserId, 'Test Thread');
@@ -214,7 +213,11 @@ describe('Chat Service', () => {
 
     it('should fail with non-existent thread', async () => {
       await expect(
-        saveMessage(999999, 'user' as Role, 'Message')
+        saveMessage(
+          '550e8400-e29b-41d4-a716-446655440001',
+          'user' as Role,
+          'Message'
+        )
       ).rejects.toThrow();
     });
 
@@ -241,85 +244,6 @@ describe('Chat Service', () => {
       expect(msg2.threadId).toBe(otherThreadId);
       expect(msg1.content).toBe('Thread 1 Message');
       expect(msg2.content).toBe('Thread 2 Message');
-    });
-  });
-
-  describe('createThreadWithFirstMessage', () => {
-    it('should create thread and message atomically', async () => {
-      const result = await createThreadWithFirstMessage(testUserId, {
-        role: 'user' as Role,
-        content: 'First message',
-        outputType: 'text' as OutputType,
-      });
-
-      expect(result.thread).toBeDefined();
-      expect(result.thread.name).toBe('New Chat');
-      expect(result.thread.userId).toBe(testUserId);
-
-      expect(result.message).toBeDefined();
-      expect(result.message.threadId).toBe(result.thread.id);
-      expect(result.message.content).toBe('First message');
-
-      // Verify both were created
-      const threadExists = await db.query.threads.findFirst({
-        where: eq(threads.id, result.thread.id),
-      });
-      const messageExists = await db.query.messages.findFirst({
-        where: eq(messages.id, result.message.id),
-      });
-
-      expect(threadExists).toBeDefined();
-      expect(messageExists).toBeDefined();
-    });
-
-    it('should handle all message roles', async () => {
-      const roles: Role[] = ['user', 'assistant', 'developer'];
-
-      for (const role of roles) {
-        const result = await createThreadWithFirstMessage(testUserId, {
-          role,
-          content: `${role} message`,
-          outputType: 'text' as OutputType,
-        });
-
-        expect(result.message.role).toBe(role);
-      }
-    });
-
-    it('should handle all output types', async () => {
-      const outputTypes: OutputType[] = ['text', 'error'];
-
-      for (const outputType of outputTypes) {
-        const result = await createThreadWithFirstMessage(testUserId, {
-          role: 'user' as Role,
-          content: `${outputType} content`,
-          outputType,
-        });
-
-        expect(result.message.outputType).toBe(outputType);
-      }
-    });
-
-    it('should fail with non-existent user', async () => {
-      const fakeUserId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
-
-      await expect(
-        createThreadWithFirstMessage(fakeUserId, {
-          role: 'user' as Role,
-          content: 'Message',
-          outputType: 'text' as OutputType,
-        })
-      ).rejects.toThrow();
-    });
-
-    it('should handle empty message content', async () => {
-      const result = await createThreadWithFirstMessage(testUserId, {
-        role: 'user' as Role,
-        content: '',
-        outputType: 'text' as OutputType,
-      });
-
-      expect(result.message.content).toBe('');
     });
   });
 
@@ -507,7 +431,9 @@ describe('Chat Service', () => {
     });
 
     it('should return undefined for non-existent thread', async () => {
-      const threadWithMessages = await getThreadWithMessages(999999);
+      const threadWithMessages = await getThreadWithMessages(
+        '550e8400-e29b-41d4-a716-446655440001'
+      );
       expect(threadWithMessages).toBeUndefined();
     });
 
@@ -547,13 +473,17 @@ describe('Chat Service', () => {
       expect(threadWithMessages?.userId).toBe(otherUserId);
     });
 
-    it('should handle negative thread ID', async () => {
-      const threadWithMessages = await getThreadWithMessages(-1);
+    it('should handle another non-existent thread UUID', async () => {
+      const threadWithMessages = await getThreadWithMessages(
+        '550e8400-e29b-41d4-a716-446655440002'
+      );
       expect(threadWithMessages).toBeUndefined();
     });
 
-    it('should handle zero thread ID', async () => {
-      const threadWithMessages = await getThreadWithMessages(0);
+    it('should handle yet another non-existent thread UUID', async () => {
+      const threadWithMessages = await getThreadWithMessages(
+        '550e8400-e29b-41d4-a716-446655440003'
+      );
       expect(threadWithMessages).toBeUndefined();
     });
   });
@@ -575,7 +505,7 @@ describe('Chat Service', () => {
 
       // Force transaction to fail by using an invalid thread ID that will pass initial insert
       // but fail on foreign key constraint
-      const invalidThreadId = 999999;
+      const invalidThreadId = '550e8400-e29b-41d4-a716-446655440001';
 
       await expect(
         saveMessage(invalidThreadId, 'user' as Role, 'This should rollback')
@@ -588,38 +518,6 @@ describe('Chat Service', () => {
       expect(afterThread?.updatedAt.getTime()).toBe(
         initialUpdatedAt?.getTime()
       );
-    });
-
-    it('should rollback entire transaction if any part fails in createThreadWithFirstMessage', async () => {
-      // Get baseline for this specific test user only
-      const initialThreads = await db.query.threads.findMany({
-        where: eq(threads.userId, testUserId),
-      });
-      const initialMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, initialThreads[0]?.id || -1),
-      });
-
-      // Try to create with non-existent user (should fail on foreign key)
-      const fakeUserId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
-
-      await expect(
-        createThreadWithFirstMessage(fakeUserId, {
-          role: 'user' as Role,
-          content: 'Should rollback',
-          outputType: 'text' as OutputType,
-        })
-      ).rejects.toThrow();
-
-      // Verify nothing was created for this test user
-      const afterThreads = await db.query.threads.findMany({
-        where: eq(threads.userId, testUserId),
-      });
-      const afterMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, initialThreads[0]?.id || -1),
-      });
-
-      expect(afterThreads.length).toBe(initialThreads.length);
-      expect(afterMessages.length).toBe(initialMessages.length);
     });
 
     it('should handle concurrent saves to same thread correctly', async () => {

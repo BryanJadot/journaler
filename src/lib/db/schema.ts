@@ -6,7 +6,6 @@ import {
   varchar,
   text,
   serial,
-  integer,
   pgEnum,
 } from 'drizzle-orm/pg-core';
 
@@ -22,7 +21,7 @@ export const users = pgTable('users', {
 });
 
 export const threads = pgTable('threads', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 255 }).notNull(),
   userId: uuid('user_id')
     .notNull()
@@ -32,7 +31,7 @@ export const threads = pgTable('threads', {
 
 export const messages = pgTable('messages', {
   id: serial('id').primaryKey(),
-  threadId: integer('thread_id')
+  threadId: uuid('thread_id')
     .notNull()
     .references(() => threads.id),
   role: roleEnum('role').notNull(),

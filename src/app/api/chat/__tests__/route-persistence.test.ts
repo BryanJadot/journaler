@@ -14,7 +14,6 @@ import {
   createApiMessage,
   createApiMessages,
   createUniqueMessageId,
-  createUniqueThreadId,
 } from '@/__tests__/helpers/test-helpers';
 import * as cookies from '@/lib/auth/cookies';
 import * as jwt from '@/lib/auth/jwt';
@@ -75,10 +74,25 @@ describe('Chat API Route - Persistence', () => {
   });
 
   describe('Validation', () => {
+    let existingThreadId: string;
+
+    beforeEach(async () => {
+      // Create a thread for validation tests
+      const [thread] = await db
+        .insert(threads)
+        .values({
+          userId: testUserId,
+          name: 'Validation Thread',
+          updatedAt: new Date(),
+        })
+        .returning();
+      existingThreadId = thread.id;
+    });
+
     it('should return 400 for missing messages', async () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
-        body: JSON.stringify({}),
+        body: JSON.stringify({ threadId: existingThreadId }),
       });
 
       const response = await POST(request);
@@ -91,7 +105,7 @@ describe('Chat API Route - Persistence', () => {
     it('should return 400 for empty messages array', async () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
-        body: JSON.stringify({ messages: [] }),
+        body: JSON.stringify({ threadId: existingThreadId, messages: [] }),
       });
 
       const response = await POST(request);
@@ -106,7 +120,10 @@ describe('Chat API Route - Persistence', () => {
     it('should return 400 for non-array messages', async () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
-        body: JSON.stringify({ messages: 'not an array' }),
+        body: JSON.stringify({
+          threadId: existingThreadId,
+          messages: 'not an array',
+        }),
       });
 
       const response = await POST(request);
@@ -114,6 +131,21 @@ describe('Chat API Route - Persistence', () => {
       expect(response.status).toBe(400);
       const data = await response.json();
       expect(data.error).toContain('Messages must be an array');
+    });
+
+    it('should return 400 for missing threadId', async () => {
+      const request = new NextRequest('http://localhost/api/chat', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [createApiMessage('user', 'Hello')],
+        }),
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain('Thread ID is required');
     });
 
     it('should handle malformed JSON gracefully', async () => {
@@ -128,64 +160,8 @@ describe('Chat API Route - Persistence', () => {
     });
   });
 
-  describe('New Thread Creation', () => {
-    it('should create a new thread for first-time user with user message', async () => {
-      const request = new NextRequest('http://localhost/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: [createApiMessage('user', 'Hello, world!')],
-        }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('X-Thread-Id')).toBeTruthy();
-
-      // Verify thread was created
-      const userThreads = await db.query.threads.findMany({
-        where: eq(threads.userId, testUserId),
-      });
-      expect(userThreads).toHaveLength(1);
-      expect(userThreads[0].name).toBe('New Chat');
-
-      // Verify message was saved
-      const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, userThreads[0].id),
-      });
-      expect(savedMessages).toHaveLength(1);
-      expect(savedMessages[0].content).toBe('Hello, world!');
-      expect(savedMessages[0].role).toBe('user');
-    });
-
-    it('should create empty thread for first-time user with non-user message', async () => {
-      const request = new NextRequest('http://localhost/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: [createApiMessage('system', 'System message')],
-        }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(200);
-
-      // Verify thread was created
-      const userThreads = await db.query.threads.findMany({
-        where: eq(threads.userId, testUserId),
-      });
-      expect(userThreads).toHaveLength(1);
-
-      // Verify no message was saved (system messages aren't saved)
-      const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, userThreads[0].id),
-      });
-      expect(savedMessages).toHaveLength(0);
-    });
-  });
-
   describe('Existing Thread Usage', () => {
-    let existingThreadId: number;
+    let existingThreadId: string;
 
     beforeEach(async () => {
       // Create an existing thread
@@ -200,31 +176,6 @@ describe('Chat API Route - Persistence', () => {
       existingThreadId = thread.id;
     });
 
-    it('should use existing thread when no threadId provided', async () => {
-      const request = new NextRequest('http://localhost/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: [
-            createApiMessage('user', 'New message in existing thread'),
-          ],
-        }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('X-Thread-Id')).toBe(
-        existingThreadId.toString()
-      );
-
-      // Verify message was saved to existing thread
-      const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, existingThreadId),
-      });
-      expect(savedMessages).toHaveLength(1);
-      expect(savedMessages[0].content).toBe('New message in existing thread');
-    });
-
     it('should use provided threadId when specified', async () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
@@ -237,9 +188,6 @@ describe('Chat API Route - Persistence', () => {
       const response = await POST(request);
 
       expect(response.status).toBe(200);
-      expect(response.headers.get('X-Thread-Id')).toBe(
-        existingThreadId.toString()
-      );
 
       // Verify message was saved to specified thread
       const savedMessages = await db.query.messages.findMany({
@@ -248,51 +196,38 @@ describe('Chat API Route - Persistence', () => {
       expect(savedMessages).toHaveLength(1);
       expect(savedMessages[0].content).toBe('Message with specific thread');
     });
-
-    it('should handle user with multiple existing threads by using most recent', async () => {
-      // Create another thread (more recent)
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      const [newerThread] = await db
-        .insert(threads)
-        .values({
-          userId: testUserId,
-          name: 'Newer Thread',
-          updatedAt: new Date(),
-        })
-        .returning();
-
-      const request = new NextRequest('http://localhost/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: [createApiMessage('user', 'Should use newest thread')],
-        }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('X-Thread-Id')).toBe(
-        newerThread.id.toString()
-      );
-    });
   });
 
   describe('Content Normalization', () => {
+    let testThreadId: string;
+
+    beforeEach(async () => {
+      // Create a thread for content normalization tests
+      const [thread] = await db
+        .insert(threads)
+        .values({
+          userId: testUserId,
+          name: 'Content Test Thread',
+          updatedAt: new Date(),
+        })
+        .returning();
+      testThreadId = thread.id;
+    });
+
     it('should handle string content', async () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
         body: JSON.stringify({
+          threadId: testThreadId,
           messages: [createApiMessage('user', 'Simple string content')],
         }),
       });
 
       const response = await POST(request);
-      const threadIdHeader = response.headers.get('X-Thread-Id');
-      expect(threadIdHeader).toBeTruthy();
-      const threadId = parseInt(threadIdHeader!);
+      expect(response.status).toBe(200);
 
       const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, threadId),
+        where: eq(messages.threadId, testThreadId),
       });
       expect(savedMessages[0].content).toBe('Simple string content');
     });
@@ -303,17 +238,16 @@ describe('Chat API Route - Persistence', () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
         body: JSON.stringify({
+          threadId: testThreadId,
           messages: [createApiMessage('user', complexContent)],
         }),
       });
 
       const response = await POST(request);
-      const threadIdHeader = response.headers.get('X-Thread-Id');
-      expect(threadIdHeader).toBeTruthy();
-      const threadId = parseInt(threadIdHeader!);
+      expect(response.status).toBe(200);
 
       const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, threadId),
+        where: eq(messages.threadId, testThreadId),
       });
       expect(savedMessages[0].content).toBe(JSON.stringify(complexContent));
     });
@@ -322,17 +256,16 @@ describe('Chat API Route - Persistence', () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
         body: JSON.stringify({
+          threadId: testThreadId,
           messages: [createApiMessage('user', '')],
         }),
       });
 
       const response = await POST(request);
-      const threadIdHeader = response.headers.get('X-Thread-Id');
-      expect(threadIdHeader).toBeTruthy();
-      const threadId = parseInt(threadIdHeader!);
+      expect(response.status).toBe(200);
 
       const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, threadId),
+        where: eq(messages.threadId, testThreadId),
       });
       expect(savedMessages[0].content).toBe('');
     });
@@ -344,17 +277,16 @@ describe('Chat API Route - Persistence', () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
         body: JSON.stringify({
+          threadId: testThreadId,
           messages: [createApiMessage('user', specialContent)],
         }),
       });
 
       const response = await POST(request);
-      const threadIdHeader = response.headers.get('X-Thread-Id');
-      expect(threadIdHeader).toBeTruthy();
-      const threadId = parseInt(threadIdHeader!);
+      expect(response.status).toBe(200);
 
       const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, threadId),
+        where: eq(messages.threadId, testThreadId),
       });
       expect(savedMessages[0].content).toBe(specialContent);
     });
@@ -363,28 +295,42 @@ describe('Chat API Route - Persistence', () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
         body: JSON.stringify({
+          threadId: testThreadId,
           messages: [createApiMessage('user', null)],
         }),
       });
 
       const response = await POST(request);
       expect(response.status).toBe(200);
-      const threadIdHeader = response.headers.get('X-Thread-Id');
-      expect(threadIdHeader).toBeTruthy();
-      const threadId = parseInt(threadIdHeader!);
 
       const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, threadId),
+        where: eq(messages.threadId, testThreadId),
       });
       expect(savedMessages[0].content).toBe('null');
     });
   });
 
   describe('Message Role Handling', () => {
+    let roleTestThreadId: string;
+
+    beforeEach(async () => {
+      // Create a thread for role handling tests
+      const [thread] = await db
+        .insert(threads)
+        .values({
+          userId: testUserId,
+          name: 'Role Test Thread',
+          updatedAt: new Date(),
+        })
+        .returning();
+      roleTestThreadId = thread.id;
+    });
+
     it('should only save user messages, not system/assistant messages', async () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
         body: JSON.stringify({
+          threadId: roleTestThreadId,
           messages: createApiMessages([
             { role: 'system', content: 'System instruction' },
             { role: 'assistant', content: 'Assistant response' },
@@ -393,12 +339,10 @@ describe('Chat API Route - Persistence', () => {
       });
 
       const response = await POST(request);
-      const threadIdHeader = response.headers.get('X-Thread-Id');
-      expect(threadIdHeader).toBeTruthy();
-      const threadId = parseInt(threadIdHeader!);
+      expect(response.status).toBe(200);
 
       const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, threadId),
+        where: eq(messages.threadId, roleTestThreadId),
       });
       expect(savedMessages).toHaveLength(0); // No user messages to save
     });
@@ -407,6 +351,7 @@ describe('Chat API Route - Persistence', () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
         body: JSON.stringify({
+          threadId: roleTestThreadId,
           messages: createApiMessages([
             { role: 'user', content: 'First user message' },
             { role: 'assistant', content: 'Assistant response' },
@@ -416,12 +361,10 @@ describe('Chat API Route - Persistence', () => {
       });
 
       const response = await POST(request);
-      const threadIdHeader = response.headers.get('X-Thread-Id');
-      expect(threadIdHeader).toBeTruthy();
-      const threadId = parseInt(threadIdHeader!);
+      expect(response.status).toBe(200);
 
       const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, threadId),
+        where: eq(messages.threadId, roleTestThreadId),
       });
       expect(savedMessages).toHaveLength(1);
       expect(savedMessages[0].content).toBe('Latest user message');
@@ -432,6 +375,7 @@ describe('Chat API Route - Persistence', () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
         body: JSON.stringify({
+          threadId: roleTestThreadId,
           messages: [
             { id: createUniqueMessageId(), content: 'Message without role' },
           ],
@@ -439,74 +383,13 @@ describe('Chat API Route - Persistence', () => {
       });
 
       const response = await POST(request);
-      const threadIdHeader = response.headers.get('X-Thread-Id');
-      expect(threadIdHeader).toBeTruthy();
-      const threadId = parseInt(threadIdHeader!);
+      expect(response.status).toBe(200);
 
       // Should not save since role is not 'user'
       const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, threadId),
+        where: eq(messages.threadId, roleTestThreadId),
       });
       expect(savedMessages).toHaveLength(0);
-    });
-  });
-
-  describe('Thread ID Error Handling', () => {
-    it('should handle non-existent thread ID gracefully', async () => {
-      const request = new NextRequest('http://localhost/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          threadId: createUniqueThreadId(), // Non-existent thread
-          messages: [
-            createApiMessage('user', 'Message for non-existent thread'),
-          ],
-        }),
-      });
-
-      // This should fail at the database level when trying to save
-      const response = await POST(request);
-      expect(response.status).toBe(400);
-    });
-
-    it('should handle negative thread ID', async () => {
-      const request = new NextRequest('http://localhost/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          threadId: -1,
-          messages: [createApiMessage('user', 'Message for negative thread')],
-        }),
-      });
-
-      const response = await POST(request);
-      expect(response.status).toBe(400);
-    });
-
-    it('should handle zero thread ID as valid but non-existent', async () => {
-      const request = new NextRequest('http://localhost/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          threadId: 0,
-          messages: [createApiMessage('user', 'Message for zero thread')],
-        }),
-      });
-
-      const response = await POST(request);
-      // Zero is a valid thread ID, but it doesn't exist in the database
-      // so it should fail when trying to save the message
-      expect(response.status).toBe(400);
-    });
-
-    it('should handle string thread ID', async () => {
-      const request = new NextRequest('http://localhost/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          threadId: 'not-a-number',
-          messages: [createApiMessage('user', 'Message for string thread ID')],
-        }),
-      });
-
-      const response = await POST(request);
-      expect(response.status).toBe(400);
     });
   });
 
@@ -613,36 +496,50 @@ describe('Chat API Route - Persistence', () => {
   });
 
   describe('Edge Cases and Performance', () => {
+    let edgeCaseThreadId: string;
+
+    beforeEach(async () => {
+      // Create a thread for edge case tests
+      const [thread] = await db
+        .insert(threads)
+        .values({
+          userId: testUserId,
+          name: 'Edge Case Thread',
+          updatedAt: new Date(),
+        })
+        .returning();
+      edgeCaseThreadId = thread.id;
+    });
+
     it('should handle very long message content', async () => {
       const longContent = 'x'.repeat(100000); // 100K characters
 
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
         body: JSON.stringify({
+          threadId: edgeCaseThreadId,
           messages: [createApiMessage('user', longContent)],
         }),
       });
 
       const response = await POST(request);
       expect(response.status).toBe(200);
-      const threadIdHeader = response.headers.get('X-Thread-Id');
-      expect(threadIdHeader).toBeTruthy();
-      const threadId = parseInt(threadIdHeader!);
 
       const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, threadId),
+        where: eq(messages.threadId, edgeCaseThreadId),
       });
       expect(savedMessages[0].content).toBe(longContent);
       expect(savedMessages[0].content.length).toBe(100000);
     });
 
-    it('should handle concurrent requests from same user', async () => {
+    it('should handle concurrent requests to same thread correctly', async () => {
       const requests = Array.from(
         { length: 3 },
         (_, i) =>
           new NextRequest('http://localhost/api/chat', {
             method: 'POST',
             body: JSON.stringify({
+              threadId: edgeCaseThreadId,
               messages: [
                 {
                   id: `${i}`,
@@ -661,27 +558,18 @@ describe('Chat API Route - Persistence', () => {
         expect(response.status).toBe(200);
       });
 
-      // Verify all responses have thread IDs
-      responses.forEach((response) => {
-        const threadIdHeader = response.headers.get('X-Thread-Id');
-        expect(threadIdHeader).toBeTruthy();
-      });
-
-      // Should have created messages for this user's threads
-      const userThreads = await db.query.threads.findMany({
-        where: eq(threads.userId, testUserId),
-      });
-      const userThreadIds = userThreads.map((t) => t.id);
+      // Should have saved all user messages to the thread
       const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, userThreadIds[0]), // At least one thread should have messages
+        where: eq(messages.threadId, edgeCaseThreadId),
       });
-      expect(savedMessages.length).toBeGreaterThan(0);
+      expect(savedMessages.length).toBe(3);
     });
 
     it('should handle messages array with mixed types', async () => {
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
         body: JSON.stringify({
+          threadId: edgeCaseThreadId,
           messages: createApiMessages([
             { role: 'system', content: 'System message' },
             { role: 'assistant', content: 'Assistant message' },
@@ -693,13 +581,10 @@ describe('Chat API Route - Persistence', () => {
 
       const response = await POST(request);
       expect(response.status).toBe(200);
-      const threadIdHeader = response.headers.get('X-Thread-Id');
-      expect(threadIdHeader).toBeTruthy();
-      const threadId = parseInt(threadIdHeader!);
 
       // Should only save the last user message
       const savedMessages = await db.query.messages.findMany({
-        where: eq(messages.threadId, threadId),
+        where: eq(messages.threadId, edgeCaseThreadId),
       });
       expect(savedMessages).toHaveLength(1);
       expect(savedMessages[0].content).toBe('Another user message');
@@ -707,7 +592,7 @@ describe('Chat API Route - Persistence', () => {
   });
 
   describe('Multi-user Isolation', () => {
-    it('should not mix threads between different users', async () => {
+    it("should not allow users to write to other users' threads", async () => {
       // Create another user
       const otherMockUser = await createMockUserWithPassword();
       const [otherUser] = await db
@@ -728,26 +613,24 @@ describe('Chat API Route - Persistence', () => {
         })
         .returning();
 
-      // Make request as first user - should not use other user's thread
+      // Try to write to other user's thread as first user
       const request = new NextRequest('http://localhost/api/chat', {
         method: 'POST',
         body: JSON.stringify({
-          messages: [createApiMessage('user', 'Should create new thread')],
+          threadId: otherUserThread.id,
+          messages: [createApiMessage('user', 'Unauthorized message')],
         }),
       });
 
       const response = await POST(request);
-      expect(response.status).toBe(200);
+      // This should fail because the thread belongs to another user
+      expect(response.status).toBe(400);
 
-      const threadId = response.headers.get('X-Thread-Id');
-      expect(threadId).not.toBe(otherUserThread.id.toString());
-
-      // Verify a new thread was created for first user
-      const userThreads = await db.query.threads.findMany({
-        where: eq(threads.userId, testUserId),
+      // Verify no message was saved
+      const savedMessages = await db.query.messages.findMany({
+        where: eq(messages.threadId, otherUserThread.id),
       });
-      expect(userThreads).toHaveLength(1);
-      expect(userThreads[0].id.toString()).toBe(threadId);
+      expect(savedMessages).toHaveLength(0);
     });
   });
 });
