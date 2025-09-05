@@ -9,8 +9,7 @@ import {
 import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies';
 import { cookies } from 'next/headers';
 
-import { createMockUser } from '@/__tests__/helpers/user';
-import type { User } from '@/lib/user/types';
+import { createMockUser } from '@/__tests__/helpers/test-helpers';
 
 import { clearAuthCookie, getAuthToken, setAuthCookie } from '../cookies';
 import { createAuthToken } from '../jwt';
@@ -124,8 +123,8 @@ describe('Cookie Management Functions', () => {
     });
 
     it('should call cookie store with different tokens for different users', async () => {
-      const user1 = { ...createMockUser(), id: 'user1', username: 'user1' };
-      const user2 = { ...createMockUser(), id: 'user2', username: 'user2' };
+      const user1 = createMockUser();
+      const user2 = createMockUser();
       const token1 = 'token1';
       const token2 = 'token2';
 
@@ -174,11 +173,8 @@ describe('Cookie Management Functions', () => {
     });
 
     it('should handle user with minimal required fields', async () => {
-      const minimalUser: User = {
-        id: '456',
-        username: 'minimal',
-        createdAt: new Date(),
-      };
+      const minimalUser = createMockUser();
+      minimalUser.username = 'minimal';
 
       await setAuthCookie(minimalUser);
 
@@ -393,8 +389,8 @@ describe('Cookie Management Functions', () => {
     });
 
     it('should handle overwriting existing cookie', async () => {
-      const user1 = { ...createMockUser(), id: 'user1' };
-      const user2 = { ...createMockUser(), id: 'user2' };
+      const user1 = createMockUser();
+      const user2 = createMockUser();
       const token1 = 'token1';
       const token2 = 'token2';
 

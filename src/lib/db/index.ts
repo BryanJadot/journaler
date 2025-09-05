@@ -9,7 +9,9 @@ import * as schema from './schema';
 const isTest = process.env.NODE_ENV === 'test';
 
 let pool: PgPool;
-let db: ReturnType<typeof drizzlePg> | ReturnType<typeof drizzle>;
+let db:
+  | ReturnType<typeof drizzlePg<typeof schema>>
+  | ReturnType<typeof drizzle<typeof schema>>;
 
 if (isTest) {
   pool = new PgPool({ connectionString: process.env.DATABASE_URL });

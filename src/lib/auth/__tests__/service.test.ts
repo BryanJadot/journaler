@@ -1,4 +1,4 @@
-import { createMockUserWithPassword } from '@/__tests__/helpers/user';
+import { createMockUserWithPassword } from '@/__tests__/helpers/test-helpers';
 import { createUser } from '@/lib/user/service';
 import * as userServiceModule from '@/lib/user/service';
 import { LoginError, SignupError, User } from '@/lib/user/types';

@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
-import { createMockUser } from '@/__tests__/helpers/user';
+import {
+  createMockUser,
+  createUniqueUserId,
+} from '@/__tests__/helpers/test-helpers';
 import type { User } from '@/lib/user/types';
 
 import {
@@ -51,8 +54,8 @@ describe('JWT Auth Functions', () => {
     });
 
     it('should create different tokens for different users', async () => {
-      const user1 = { ...createMockUser(), id: 'user1', username: 'user1' };
-      const user2 = { ...createMockUser(), id: 'user2', username: 'user2' };
+      const user1 = createMockUser();
+      const user2 = createMockUser();
 
       const token1 = await createAuthToken(user1);
       const token2 = await createAuthToken(user2);
@@ -199,7 +202,7 @@ describe('JWT Auth Functions', () => {
       const secret = new TextEncoder().encode(TEST_JWT_SECRET);
 
       const invalidToken = await new SignJWT({
-        userId: '123',
+        userId: createUniqueUserId(),
         // Missing username
       })
         .setProtectedHeader({ alg: 'HS256' })

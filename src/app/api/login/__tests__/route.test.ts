@@ -9,7 +9,7 @@ import {
 import { NextRequest } from 'next/server';
 
 import { silenceConsoleErrors } from '@/__tests__/helpers/console-helpers';
-import { createMockUser } from '@/__tests__/helpers/user';
+import { createMockUser } from '@/__tests__/helpers/test-helpers';
 import { setAuthCookie } from '@/lib/auth/cookies';
 import { loginUser } from '@/lib/auth/service';
 import { LoginError } from '@/lib/user/types';

@@ -1,3 +1,4 @@
+import { createUniqueUserId } from '@/__tests__/helpers/test-helpers';
 import * as requireAuthServerModule from '@/lib/auth/require-auth-server';
 
 jest.mock('@/lib/auth/require-auth-server');
@@ -13,7 +14,7 @@ describe('ChatLayout (auth behavior)', () => {
   });
 
   it('should return userId when requireAuthServer succeeds', async () => {
-    const userId = 'user-123';
+    const userId = createUniqueUserId();
     mockRequireAuthServer.mockResolvedValue(userId);
 
     const result = await requireAuthServerModule.requireAuthServer();
