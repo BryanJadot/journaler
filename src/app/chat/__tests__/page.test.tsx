@@ -6,12 +6,14 @@ import * as chatServiceModule from '@/lib/chat/service';
 
 import Page from '../page';
 
+// Mock external dependencies for isolated unit testing
 jest.mock('@/lib/auth/require-auth-server');
 jest.mock('@/lib/chat/service');
 jest.mock('next/navigation', () => ({
   redirect: jest.fn(),
 }));
 
+// Type-safe mock function references for better IDE support and type checking
 const mockRequireAuthServer =
   requireAuthServerModule.requireAuthServer as jest.MockedFunction<
     typeof requireAuthServerModule.requireAuthServer
@@ -28,11 +30,22 @@ const mockCreateThread = chatServiceModule.createThread as jest.MockedFunction<
 
 const mockRedirect = redirect as jest.MockedFunction<typeof redirect>;
 
+/**
+ * Test suite for the main chat page that handles thread routing logic.
+ *
+ * This page serves as a router that either redirects to the most recent thread
+ * or creates a new thread if none exists. It's the entry point for /chat route.
+ */
 describe('/chat page', () => {
   beforeEach(() => {
+    // Reset all mock call counts and return values before each test
     jest.clearAllMocks();
   });
 
+  /**
+   * Test that the page redirects to the most recent thread when user has existing threads.
+   * This implements the UX pattern of returning users to their latest conversation.
+   */
   it('should redirect to most recent thread when one exists', async () => {
     const userId = createUniqueUserId();
     const threadId = 'thread-123';
@@ -54,6 +67,10 @@ describe('/chat page', () => {
     expect(mockCreateThread).not.toHaveBeenCalled();
   });
 
+  /**
+   * Test that the page creates a new thread when user has no existing threads.
+   * This ensures new users or users who have deleted all threads get a fresh start.
+   */
   it('should create new thread and redirect when no threads exist', async () => {
     const userId = createUniqueUserId();
     const newThreadId = 'new-thread-456';
@@ -75,6 +92,10 @@ describe('/chat page', () => {
     expect(mockRedirect).toHaveBeenCalledWith(`/chat/${newThreadId}`);
   });
 
+  /**
+   * Test that authentication failures are properly handled and propagated.
+   * This ensures unauthorized users cannot access the chat functionality.
+   */
   it('should handle auth failure', async () => {
     const authError = new Error('REDIRECT: /login');
     mockRequireAuthServer.mockRejectedValue(authError);
