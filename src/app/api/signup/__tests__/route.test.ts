@@ -13,7 +13,7 @@ import { createMockUser } from '@/__tests__/helpers/test-helpers';
 import { setAuthCookie } from '@/lib/auth/cookies';
 import { validateRequestFormat } from '@/lib/auth/request-validation';
 import { isSignupEnabled, signupUser } from '@/lib/auth/service';
-import { SignupError } from '@/lib/user/types';
+import type { SignupError } from '@/lib/user/types';
 
 import { POST } from '../route';
 
@@ -266,7 +266,7 @@ describe('Signup API Route', () => {
 
       mockSignupUser.mockResolvedValue({
         success: false,
-        error: SignupError.USERNAME_TAKEN,
+        error: 'username-taken',
       });
 
       const request = createMockRequest(validCredentials);
@@ -298,7 +298,7 @@ describe('Signup API Route', () => {
 
       mockSignupUser.mockResolvedValue({
         success: false,
-        error: SignupError.INVALID_USERNAME,
+        error: 'invalid-username',
       });
 
       const request = createMockRequest(invalidCredentials);
@@ -330,7 +330,7 @@ describe('Signup API Route', () => {
 
       mockSignupUser.mockResolvedValue({
         success: false,
-        error: SignupError.USERNAME_TOO_LONG,
+        error: 'username-too-long',
       });
 
       const request = createMockRequest(longUsernameCredentials);
@@ -530,19 +530,23 @@ describe('Signup API Route', () => {
     });
 
     it('should return consistent error format for signup failures', async () => {
-      const testCases = [
+      const testCases: Array<{
+        signupError: SignupError;
+        expectedStatus: number;
+        expectedMessage: string;
+      }> = [
         {
-          signupError: SignupError.USERNAME_TAKEN,
+          signupError: 'username-taken',
           expectedStatus: 409,
           expectedMessage: 'Username is already taken',
         },
         {
-          signupError: SignupError.INVALID_USERNAME,
+          signupError: 'invalid-username',
           expectedStatus: 400,
           expectedMessage: 'Username cannot contain spaces',
         },
         {
-          signupError: SignupError.USERNAME_TOO_LONG,
+          signupError: 'username-too-long',
           expectedStatus: 400,
           expectedMessage: 'Username must be 255 characters or less',
         },
@@ -677,7 +681,7 @@ describe('Signup API Route', () => {
 
       mockSignupUser.mockResolvedValue({
         success: false,
-        error: SignupError.USERNAME_TAKEN,
+        error: 'username-taken',
       });
 
       const request = createMockRequest(validCredentials);

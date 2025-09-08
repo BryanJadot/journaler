@@ -12,7 +12,6 @@ import { silenceConsoleErrors } from '@/__tests__/helpers/console-helpers';
 import { createMockUser } from '@/__tests__/helpers/test-helpers';
 import { setAuthCookie } from '@/lib/auth/cookies';
 import { loginUser } from '@/lib/auth/service';
-import { LoginError } from '@/lib/user/types';
 
 import { POST } from '../route';
 
@@ -285,7 +284,7 @@ describe('Login API Route', () => {
     it('should return 401 for user not found', async () => {
       mockLoginUser.mockResolvedValue({
         success: false,
-        error: LoginError.USER_NOT_FOUND,
+        error: 'user-not-found',
       });
 
       const request = createMockRequest({
@@ -300,7 +299,7 @@ describe('Login API Route', () => {
       const responseData = await response.json();
       expect(responseData).toEqual({
         success: false,
-        error: LoginError.USER_NOT_FOUND,
+        error: 'user-not-found',
       });
 
       expect(mockLoginUser).toHaveBeenCalledWith({
@@ -314,7 +313,7 @@ describe('Login API Route', () => {
     it('should return 401 for invalid password', async () => {
       mockLoginUser.mockResolvedValue({
         success: false,
-        error: LoginError.INVALID_PASSWORD,
+        error: 'invalid-password',
       });
 
       const request = createMockRequest({
@@ -329,7 +328,7 @@ describe('Login API Route', () => {
       const responseData = await response.json();
       expect(responseData).toEqual({
         success: false,
-        error: LoginError.INVALID_PASSWORD,
+        error: 'invalid-password',
       });
 
       expect(mockSetAuthCookie).not.toHaveBeenCalled();
@@ -446,7 +445,7 @@ describe('Login API Route', () => {
 
       mockLoginUser.mockResolvedValue({
         success: false,
-        error: LoginError.USER_NOT_FOUND,
+        error: 'user-not-found',
       });
 
       const response = await POST(request);
@@ -467,7 +466,7 @@ describe('Login API Route', () => {
 
       mockLoginUser.mockResolvedValue({
         success: false,
-        error: LoginError.INVALID_PASSWORD,
+        error: 'invalid-password',
       });
 
       const response = await POST(request);
@@ -557,7 +556,7 @@ describe('Login API Route', () => {
 
       mockLoginUser.mockResolvedValue({
         success: false,
-        error: LoginError.INVALID_PASSWORD,
+        error: 'invalid-password',
       });
 
       for (const request of requests) {

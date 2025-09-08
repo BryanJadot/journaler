@@ -4,7 +4,6 @@ import * as cookiesModule from '../cookies';
 import * as jwtModule from '../jwt';
 import { requireAuthServer } from '../require-auth-server';
 
-
 jest.mock('../cookies');
 jest.mock('../jwt');
 jest.mock('next/navigation', () => ({
@@ -53,7 +52,7 @@ describe('requireAuthServer', () => {
     mockGetAuthToken.mockResolvedValue('invalid-token');
     mockVerifyAuthToken.mockResolvedValue({
       success: false,
-      error: jwtModule.TokenVerificationError.INVALID_TOKEN,
+      error: 'invalid-token',
     });
 
     await expect(requireAuthServer()).rejects.toThrow('REDIRECT: /login');
@@ -64,7 +63,7 @@ describe('requireAuthServer', () => {
     mockGetAuthToken.mockResolvedValue('token-with-bad-payload');
     mockVerifyAuthToken.mockResolvedValue({
       success: false,
-      error: jwtModule.TokenVerificationError.INVALID_PAYLOAD,
+      error: 'invalid-payload',
     });
 
     await expect(requireAuthServer()).rejects.toThrow('REDIRECT: /login');

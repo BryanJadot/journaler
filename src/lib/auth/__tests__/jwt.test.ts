@@ -6,11 +6,7 @@ import {
 } from '@/__tests__/helpers/test-helpers';
 import type { User } from '@/lib/user/types';
 
-import {
-  createAuthToken,
-  TokenVerificationError,
-  verifyAuthToken,
-} from '../jwt';
+import { createAuthToken, verifyAuthToken } from '../jwt';
 
 // Mock environment variable for consistent testing
 const originalEnv = process.env.JWT_SECRET;
@@ -126,7 +122,7 @@ describe('JWT Auth Functions', () => {
 
       expect(result).toEqual({
         success: false,
-        error: TokenVerificationError.INVALID_TOKEN,
+        error: 'invalid-token',
       });
     });
 
@@ -135,7 +131,7 @@ describe('JWT Auth Functions', () => {
 
       expect(result).toEqual({
         success: false,
-        error: TokenVerificationError.INVALID_TOKEN,
+        error: 'invalid-token',
       });
     });
 
@@ -144,7 +140,7 @@ describe('JWT Auth Functions', () => {
 
       expect(result).toEqual({
         success: false,
-        error: TokenVerificationError.INVALID_TOKEN,
+        error: 'invalid-token',
       });
     });
 
@@ -153,7 +149,7 @@ describe('JWT Auth Functions', () => {
 
       expect(result).toEqual({
         success: false,
-        error: TokenVerificationError.INVALID_TOKEN,
+        error: 'invalid-token',
       });
     });
 
@@ -171,7 +167,7 @@ describe('JWT Auth Functions', () => {
 
       expect(result).toEqual({
         success: false,
-        error: TokenVerificationError.INVALID_TOKEN,
+        error: 'invalid-token',
       });
     });
 
@@ -193,7 +189,7 @@ describe('JWT Auth Functions', () => {
 
       expect(result).toEqual({
         success: false,
-        error: TokenVerificationError.INVALID_PAYLOAD,
+        error: 'invalid-payload',
       });
     });
 
@@ -214,7 +210,7 @@ describe('JWT Auth Functions', () => {
 
       expect(result).toEqual({
         success: false,
-        error: TokenVerificationError.INVALID_PAYLOAD,
+        error: 'invalid-payload',
       });
     });
 
@@ -235,7 +231,7 @@ describe('JWT Auth Functions', () => {
 
       expect(result).toEqual({
         success: false,
-        error: TokenVerificationError.INVALID_PAYLOAD,
+        error: 'invalid-payload',
       });
     });
 
@@ -258,7 +254,7 @@ describe('JWT Auth Functions', () => {
 
       expect(result).toEqual({
         success: false,
-        error: TokenVerificationError.INVALID_TOKEN,
+        error: 'invalid-token',
       });
     });
 
@@ -311,7 +307,7 @@ describe('JWT Auth Functions', () => {
 
         expect(result).toEqual({
           success: false,
-          error: TokenVerificationError.INVALID_TOKEN,
+          error: 'invalid-token',
         });
       } catch {
         // If jose doesn't support HS384, that's expected

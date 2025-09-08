@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { setAuthCookie } from '@/lib/auth/cookies';
 import { validateRequestFormat } from '@/lib/auth/request-validation';
 import { isSignupEnabled, signupUser } from '@/lib/auth/service';
-import { SignupError } from '@/lib/user/types';
 
 /**
  * Handles the HTTP POST request for user signup.
@@ -75,15 +74,15 @@ export async function POST(request: NextRequest) {
       let statusCode = 400;
 
       switch (result.error) {
-        case SignupError.USERNAME_TAKEN:
+        case 'username-taken':
           errorMessage = 'Username is already taken';
           statusCode = 409;
           break;
-        case SignupError.INVALID_USERNAME:
+        case 'invalid-username':
           errorMessage = 'Username cannot contain spaces';
           statusCode = 400;
           break;
-        case SignupError.USERNAME_TOO_LONG:
+        case 'username-too-long':
           errorMessage = 'Username must be 255 characters or less';
           statusCode = 400;
           break;

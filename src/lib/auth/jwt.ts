@@ -31,17 +31,9 @@ export interface AuthTokenPayload {
 }
 
 /**
- * Enum for token verification error types
- * Provides specific error categories for authentication failures
- *
- * @enum {string} TokenVerificationError
+ * String literal type for token verification errors
  */
-export enum TokenVerificationError {
-  /** Indicates the token is structurally invalid or cannot be verified */
-  INVALID_TOKEN = 'INVALID_TOKEN',
-  /** Indicates the token payload does not match expected structure */
-  INVALID_PAYLOAD = 'INVALID_PAYLOAD',
-}
+export type TokenVerificationError = 'invalid-token' | 'invalid-payload';
 
 /**
  * Represents the result of token verification
@@ -145,9 +137,9 @@ export async function verifyAuthToken(
     }
 
     // Reject tokens with invalid payload structure
-    return { success: false, error: TokenVerificationError.INVALID_PAYLOAD };
+    return { success: false, error: 'invalid-payload' };
   } catch {
     // Catch any verification errors (signature mismatch, expired token, algorithm mismatch)
-    return { success: false, error: TokenVerificationError.INVALID_TOKEN };
+    return { success: false, error: 'invalid-token' };
   }
 }

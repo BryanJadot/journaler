@@ -53,7 +53,7 @@ describe('requireAuth', () => {
     mockGetAuthToken.mockResolvedValue('invalid-token');
     mockVerifyAuthToken.mockResolvedValue({
       success: false,
-      error: jwtModule.TokenVerificationError.INVALID_TOKEN,
+      error: 'invalid-token',
     });
 
     const wrappedHandler = requireAuth(mockHandler);
@@ -69,7 +69,7 @@ describe('requireAuth', () => {
     mockGetAuthToken.mockResolvedValue('token-with-bad-payload');
     mockVerifyAuthToken.mockResolvedValue({
       success: false,
-      error: jwtModule.TokenVerificationError.INVALID_PAYLOAD,
+      error: 'invalid-payload',
     });
 
     const wrappedHandler = requireAuth(mockHandler);

@@ -1,7 +1,7 @@
 import { createMockUserWithPassword } from '@/__tests__/helpers/test-helpers';
 import { createUser } from '@/lib/user/service';
 import * as userServiceModule from '@/lib/user/service';
-import { LoginError, SignupError, User } from '@/lib/user/types';
+import { User } from '@/lib/user/types';
 
 import { isSignupEnabled, loginUser, signupUser } from '../service';
 
@@ -75,7 +75,7 @@ describe('authenticateUser', () => {
 
     expect(result).toEqual({
       success: false,
-      error: LoginError.USER_NOT_FOUND,
+      error: 'user-not-found',
     });
   });
 
@@ -94,7 +94,7 @@ describe('authenticateUser', () => {
 
     expect(result).toEqual({
       success: false,
-      error: LoginError.INVALID_PASSWORD,
+      error: 'invalid-password',
     });
   });
 
@@ -106,7 +106,7 @@ describe('authenticateUser', () => {
 
     expect(result).toEqual({
       success: false,
-      error: LoginError.USER_NOT_FOUND,
+      error: 'user-not-found',
     });
   });
 
@@ -118,7 +118,7 @@ describe('authenticateUser', () => {
 
     expect(result).toEqual({
       success: false,
-      error: LoginError.USER_NOT_FOUND,
+      error: 'user-not-found',
     });
   });
 });
@@ -209,7 +209,7 @@ describe('signupUser', () => {
 
       expect(result).toEqual({
         success: false,
-        error: SignupError.INVALID_USERNAME,
+        error: 'invalid-username',
       });
     });
 
@@ -223,7 +223,7 @@ describe('signupUser', () => {
 
       expect(result).toEqual({
         success: false,
-        error: SignupError.INVALID_USERNAME,
+        error: 'invalid-username',
       });
     });
 
@@ -237,7 +237,7 @@ describe('signupUser', () => {
 
       expect(result).toEqual({
         success: false,
-        error: SignupError.INVALID_USERNAME,
+        error: 'invalid-username',
       });
     });
 
@@ -251,7 +251,7 @@ describe('signupUser', () => {
 
       expect(result).toEqual({
         success: false,
-        error: SignupError.INVALID_USERNAME,
+        error: 'invalid-username',
       });
     });
 
@@ -265,7 +265,7 @@ describe('signupUser', () => {
 
       expect(result).toEqual({
         success: false,
-        error: SignupError.INVALID_USERNAME,
+        error: 'invalid-username',
       });
     });
 
@@ -279,7 +279,7 @@ describe('signupUser', () => {
 
       expect(result).toEqual({
         success: false,
-        error: SignupError.INVALID_USERNAME,
+        error: 'invalid-username',
       });
     });
 
@@ -293,7 +293,7 @@ describe('signupUser', () => {
 
       expect(result).toEqual({
         success: false,
-        error: SignupError.INVALID_USERNAME,
+        error: 'invalid-username',
       });
     });
 
@@ -307,7 +307,7 @@ describe('signupUser', () => {
 
       expect(result).toEqual({
         success: false,
-        error: SignupError.USERNAME_TOO_LONG,
+        error: 'username-too-long',
       });
     });
 
@@ -346,7 +346,7 @@ describe('signupUser', () => {
 
       expect(secondResult).toEqual({
         success: false,
-        error: SignupError.USERNAME_TAKEN,
+        error: 'username-taken',
       });
     });
 
@@ -372,7 +372,7 @@ describe('signupUser', () => {
 
       expect(secondResult).toEqual({
         success: false,
-        error: SignupError.USERNAME_TAKEN,
+        error: 'username-taken',
       });
     });
 
@@ -415,7 +415,7 @@ describe('signupUser', () => {
 
       expect(result).toEqual({
         success: false,
-        error: SignupError.USERNAME_TAKEN,
+        error: 'username-taken',
       });
 
       // Restore original function
@@ -437,7 +437,7 @@ describe('signupUser', () => {
 
       expect(result).toEqual({
         success: false,
-        error: SignupError.USERNAME_TAKEN,
+        error: 'username-taken',
       });
 
       // Restore original function
@@ -456,7 +456,7 @@ describe('signupUser', () => {
 
       expect(result).toEqual({
         success: false,
-        error: SignupError.USERNAME_TOO_LONG,
+        error: 'username-too-long',
       });
     });
 
@@ -605,9 +605,9 @@ describe('signupUser', () => {
 
       const failureResult = loginResultTrimmed as {
         success: false;
-        error: LoginError;
+        error: string;
       };
-      expect(failureResult.error).toBe(LoginError.INVALID_PASSWORD);
+      expect(failureResult.error).toBe('invalid-password');
     });
 
     it('should handle case-sensitive password authentication', async () => {
@@ -640,9 +640,9 @@ describe('signupUser', () => {
 
       const wrongCaseFailure = wrongCaseResult as {
         success: false;
-        error: LoginError;
+        error: string;
       };
-      expect(wrongCaseFailure.error).toBe(LoginError.INVALID_PASSWORD);
+      expect(wrongCaseFailure.error).toBe('invalid-password');
     });
   });
 
@@ -671,8 +671,8 @@ describe('signupUser', () => {
       results.forEach((result) => {
         expect(result.success).toBe(false);
 
-        const failureResult = result as { success: false; error: SignupError };
-        expect(failureResult.error).toBe(SignupError.USERNAME_TAKEN);
+        const failureResult = result as { success: false; error: string };
+        expect(failureResult.error).toBe('username-taken');
       });
     });
 

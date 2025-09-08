@@ -116,7 +116,7 @@ describe('/api/chat POST', () => {
     mockGetAuthToken.mockResolvedValue('invalid-token');
     mockVerifyAuthToken.mockResolvedValue({
       success: false,
-      error: jwtModule.TokenVerificationError.INVALID_TOKEN,
+      error: 'invalid-token',
     });
 
     const request = createRequest();
@@ -131,7 +131,7 @@ describe('/api/chat POST', () => {
     mockGetAuthToken.mockResolvedValue('token-with-bad-payload');
     mockVerifyAuthToken.mockResolvedValue({
       success: false,
-      error: jwtModule.TokenVerificationError.INVALID_PAYLOAD,
+      error: 'invalid-payload',
     });
 
     const request = createRequest();

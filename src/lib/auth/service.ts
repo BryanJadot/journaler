@@ -9,8 +9,8 @@ import type {
   LoginCredentials,
   LoginResult,
   SignupResult,
+  SignupError,
 } from '../user/types';
-import { LoginError, SignupError } from '../user/types';
 
 /**
  * Checks if user signup is enabled via environment variable
@@ -29,16 +29,16 @@ function validateUsername(username: string):
   | { valid: true }
   | {
       valid: false;
-      error: SignupError.INVALID_USERNAME | SignupError.USERNAME_TOO_LONG;
+      error: SignupError;
     } {
   // Check for whitespace characters
   if (/\s/.test(username)) {
-    return { valid: false, error: SignupError.INVALID_USERNAME };
+    return { valid: false, error: 'invalid-username' };
   }
 
   // Check length constraint (database limit)
   if (username.length > 255) {
-    return { valid: false, error: SignupError.USERNAME_TOO_LONG };
+    return { valid: false, error: 'username-too-long' };
   }
 
   return { valid: true };
@@ -91,7 +91,7 @@ export async function loginUser(
   if (!validation.valid) {
     // For login, we treat all validation errors as USER_NOT_FOUND
     // This prevents username enumeration attacks
-    return { success: false, error: LoginError.USER_NOT_FOUND };
+    return { success: false, error: 'user-not-found' };
   }
 
   const [user] = await db
@@ -100,13 +100,13 @@ export async function loginUser(
     .where(eq(users.username, credentials.username));
 
   if (!user) {
-    return { success: false, error: LoginError.USER_NOT_FOUND };
+    return { success: false, error: 'user-not-found' };
   }
 
   const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
 
   if (!isValid) {
-    return { success: false, error: LoginError.INVALID_PASSWORD };
+    return { success: false, error: 'invalid-password' };
   }
 
   return {
@@ -170,13 +170,13 @@ export async function signupUser(
     .where(eq(users.username, userData.username));
 
   if (existingUser.length > 0) {
-    return { success: false, error: SignupError.USERNAME_TAKEN };
+    return { success: false, error: 'username-taken' };
   }
 
   try {
     const user = await createUser(userData);
     return { success: true, user };
   } catch {
-    return { success: false, error: SignupError.USERNAME_TAKEN };
+    return { success: false, error: 'username-taken' };
   }
 }

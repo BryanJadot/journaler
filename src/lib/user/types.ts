@@ -40,32 +40,17 @@ export interface LoginCredentials {
 }
 
 /**
- * Enumeration of possible login failure scenarios
- * Provides granular error categorization for authentication attempts
- *
- * @enum {string} LoginError
- * @property {string} USER_NOT_FOUND - Indicates no user exists with the given username
- * @property {string} INVALID_PASSWORD - Indicates incorrect password for existing user
+ * String literal type for login errors
  */
-export enum LoginError {
-  USER_NOT_FOUND = 'USER_NOT_FOUND',
-  INVALID_PASSWORD = 'INVALID_PASSWORD',
-}
+export type LoginError = 'user-not-found' | 'invalid-password';
 
 /**
- * Enumeration of possible signup failure scenarios
- * Provides specific validation errors during user registration
- *
- * @enum {string} SignupError
- * @property {string} USERNAME_TAKEN - Indicates username is already registered
- * @property {string} INVALID_USERNAME - Indicates username does not meet format requirements
- * @property {string} USERNAME_TOO_LONG - Indicates username exceeds maximum allowed length
+ * String literal type for signup errors
  */
-export enum SignupError {
-  USERNAME_TAKEN = 'USERNAME_TAKEN',
-  INVALID_USERNAME = 'INVALID_USERNAME',
-  USERNAME_TOO_LONG = 'USERNAME_TOO_LONG',
-}
+export type SignupError =
+  | 'username-taken'
+  | 'invalid-username'
+  | 'username-too-long';
 
 /**
  * Represents the result of a login authentication attempt
