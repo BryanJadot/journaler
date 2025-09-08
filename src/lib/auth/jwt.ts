@@ -31,7 +31,29 @@ export interface AuthTokenPayload {
 }
 
 /**
- * String literal type for token verification errors
+ * Token verification error types using string literals for consistent error handling
+ *
+ * String literal types provide better integration with error handling middleware
+ * and frontend components compared to traditional enums. They serialize directly
+ * to JSON and enable cleaner discriminated union patterns.
+ *
+ * @typedef {TokenVerificationError}
+ * Error codes returned during JWT token verification:
+ * - 'invalid-token': Token signature is invalid, expired, or malformed
+ * - 'invalid-payload': Token payload structure doesn't match expected AuthTokenPayload
+ *
+ * @example
+ * const result = await verifyAuthToken(token);
+ * if (!result.success) {
+ *   switch (result.error) {
+ *     case 'invalid-token':
+ *       // Handle expired or tampered tokens
+ *       break;
+ *     case 'invalid-payload':
+ *       // Handle corrupted token payload
+ *       break;
+ *   }
+ * }
  */
 export type TokenVerificationError = 'invalid-token' | 'invalid-payload';
 
@@ -78,14 +100,27 @@ export async function createAuthToken(user: User): Promise<string> {
 
 /**
  * Validates the structure of an authentication token payload
- * Performs runtime type checking to ensure payload integrity
- * Uses type guard pattern to validate object shape and primitive types
  *
- * @param {unknown} payload - Token payload to validate
- * @returns {boolean} Whether payload matches AuthTokenPayload structure
- * @internal
- * @private
- * @throws {TypeError} If payload does not match expected structure
+ * Performs runtime type checking to ensure payload integrity using TypeScript's
+ * type guard pattern. This validation prevents malformed tokens from causing
+ * runtime errors and ensures type safety throughout the authentication flow.
+ *
+ * @param {unknown} payload - Token payload to validate (from JWT.verify)
+ * @returns {payload is AuthTokenPayload} Type guard indicating valid payload structure
+ *
+ * @internal This function is only used internally by verifyAuthToken
+ *
+ * Validation checks:
+ * - Payload is a non-null object
+ * - Contains required 'userId' and 'username' properties
+ * - Both properties are non-empty strings
+ *
+ * @example
+ * // Internal usage within verifyAuthToken:
+ * if (isValidAuthTokenPayload(payload)) {
+ *   // payload is now typed as AuthTokenPayload
+ *   const userId = payload.userId; // TypeScript knows this exists
+ * }
  */
 function isValidAuthTokenPayload(
   payload: unknown
@@ -126,9 +161,9 @@ export async function verifyAuthToken(
     // Verify token using the secret key and extract payload
     const { payload } = await jwtVerify(token, secret);
 
-    // Additional payload structure validation
+    // Validate payload structure using type guard to ensure data integrity
     if (isValidAuthTokenPayload(payload)) {
-      // Extract only the expected payload fields to maintain clean interface
+      // Create clean payload object with only expected fields for security
       const authPayload: AuthTokenPayload = {
         userId: payload.userId,
         username: payload.username,
@@ -136,10 +171,10 @@ export async function verifyAuthToken(
       return { success: true, payload: authPayload };
     }
 
-    // Reject tokens with invalid payload structure
+    // Return specific error for malformed payload structure
     return { success: false, error: 'invalid-payload' };
   } catch {
-    // Catch any verification errors (signature mismatch, expired token, algorithm mismatch)
+    // Handle all JWT verification failures (expired, invalid signature, wrong algorithm, etc.)
     return { success: false, error: 'invalid-token' };
   }
 }

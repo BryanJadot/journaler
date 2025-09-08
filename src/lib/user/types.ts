@@ -40,12 +40,32 @@ export interface LoginCredentials {
 }
 
 /**
- * String literal type for login errors
+ * Login error types using string literals for better runtime interoperability
+ *
+ * String literal types are preferred over enums for error codes because:
+ * - They serialize naturally to JSON without enum value translation
+ * - Provide better TypeScript narrowing and discriminated union support
+ * - Are more lightweight at runtime (no enum object generated)
+ * - Enable direct string comparison without enum imports
+ *
+ * @typedef {LoginError}
+ * Error codes returned during login authentication:
+ * - 'user-not-found': Username doesn't exist in the system
+ * - 'invalid-password': Provided password doesn't match stored hash
  */
 export type LoginError = 'user-not-found' | 'invalid-password';
 
 /**
- * String literal type for signup errors
+ * Signup error types using string literals for consistent error handling
+ *
+ * These error codes provide specific feedback for user registration failures.
+ * String literal types offer better integration with APIs and frontend validation.
+ *
+ * @typedef {SignupError}
+ * Error codes returned during user registration:
+ * - 'username-taken': Requested username already exists in the database
+ * - 'invalid-username': Username contains invalid characters (e.g., whitespace)
+ * - 'username-too-long': Username exceeds maximum length limit (255 characters)
  */
 export type SignupError =
   | 'username-taken'

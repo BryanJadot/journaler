@@ -21,9 +21,26 @@ export function isSignupEnabled(): boolean {
 }
 
 /**
- * Validates username format and constraints
- * @param username - The username to validate
- * @returns Object with validation result and error type if invalid
+ * Validates username format and constraints for user registration/login
+ *
+ * Performs comprehensive username validation to ensure data integrity
+ * and prevent common attack vectors. Uses discriminated union return type
+ * for type-safe error handling.
+ *
+ * @param {string} username - The username string to validate
+ * @returns {ValidationResult} Object indicating validation success or specific error
+ *
+ * Validation rules:
+ * - No whitespace characters (spaces, tabs, newlines)
+ * - Maximum length of 255 characters (database constraint)
+ *
+ * @example
+ * const result = validateUsername('valid_user123');
+ * if (result.valid) {
+ *   // Username passes validation
+ * } else {
+ *   // Handle specific error: result.error
+ * }
  */
 function validateUsername(username: string):
   | { valid: true }
@@ -31,12 +48,12 @@ function validateUsername(username: string):
       valid: false;
       error: SignupError;
     } {
-  // Check for whitespace characters
+  // Reject usernames with any whitespace to prevent confusion and security issues
   if (/\s/.test(username)) {
     return { valid: false, error: 'invalid-username' };
   }
 
-  // Check length constraint (database limit)
+  // Enforce database schema constraint to prevent truncation errors
   if (username.length > 255) {
     return { valid: false, error: 'username-too-long' };
   }
@@ -57,9 +74,9 @@ function validateUsername(username: string):
  * - Compares the provided password against the stored bcrypt hash
  * - Returns sanitized user data on successful authentication
  *
- * @throws {LoginError} Indicates specific authentication failure
- *   - USER_NOT_FOUND: Username doesn't exist or format is invalid
- *   - INVALID_PASSWORD: Password doesn't match the stored hash
+ * @throws {LoginError} Returns specific authentication failure in result.error:
+ *   - 'user-not-found': Username doesn't exist or format is invalid
+ *   - 'invalid-password': Password doesn't match the stored hash
  *
  * @example
  * const result = await loginUser({
@@ -86,11 +103,11 @@ function validateUsername(username: string):
 export async function loginUser(
   credentials: LoginCredentials
 ): Promise<LoginResult> {
-  // Validate username format first
+  // Pre-validate username format to prevent unnecessary database queries
   const validation = validateUsername(credentials.username);
   if (!validation.valid) {
-    // For login, we treat all validation errors as USER_NOT_FOUND
-    // This prevents username enumeration attacks
+    // Security: Convert all validation errors to 'user-not-found' for login
+    // This prevents username enumeration attacks by not revealing validation rules
     return { success: false, error: 'user-not-found' };
   }
 
@@ -132,10 +149,10 @@ export async function loginUser(
  * - Verifies username is not already taken
  * - Hashes the user's password securely before storage
  *
- * @throws {SignupError} Indicates specific validation or creation failure
- *   - INVALID_USERNAME: Username contains spaces
- *   - USERNAME_TOO_LONG: Username exceeds 255 characters
- *   - USERNAME_TAKEN: Username already exists in the system
+ * @throws {SignupError} Returns specific validation failure in result.error:
+ *   - 'invalid-username': Username contains whitespace characters
+ *   - 'username-too-long': Username exceeds 255 character limit
+ *   - 'username-taken': Username already exists in the database
  *
  * @example
  * const result = await signupUser({
@@ -157,13 +174,13 @@ export async function loginUser(
 export async function signupUser(
   userData: CreateUserData
 ): Promise<SignupResult> {
-  // Validate username format and constraints
+  // Validate username format and business rules before database operations
   const validation = validateUsername(userData.username);
   if (!validation.valid) {
     return { success: false, error: validation.error };
   }
 
-  // Check if username already exists
+  // Query database to prevent duplicate usernames (unique constraint enforcement)
   const existingUser = await db
     .select({ id: users.id })
     .from(users)
