@@ -4,7 +4,7 @@ import { requireAuthServer } from '@/lib/auth/require-auth-server';
 import { getThreadWithMessages } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
 
-import ClientChatInput from '../components/ClientChatInput';
+import ChatContainer from '../components/ChatContainer';
 import MessageList from '../components/MessageList';
 import ThreadHeader from '../components/ThreadHeader';
 import ThreadInitializer from '../components/ThreadInitializer';
@@ -69,15 +69,13 @@ export default async function Page({
       {/* Hybrid thread header - server-rendered initially, reactive to store changes */}
       <ThreadHeader initialThreadName={thread.name} />
 
-      {/* Server-rendered existing messages */}
-      {initialMessages.length > 0 && (
-        <div className="mb-6">
+      {/* Chat container with truly server-rendered initial messages */}
+      <ChatContainer>
+        {/* Server-rendered initial messages */}
+        {initialMessages.length > 0 && (
           <MessageList messages={initialMessages} />
-        </div>
-      )}
-
-      {/* Client-side chat input and new messages */}
-      <ClientChatInput />
+        )}
+      </ChatContainer>
     </div>
   );
 }
