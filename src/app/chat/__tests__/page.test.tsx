@@ -24,17 +24,13 @@ const mockGetMostRecentThread =
     typeof chatServiceModule.getMostRecentThread
   >;
 
-const mockCreateThread = chatServiceModule.createThread as jest.MockedFunction<
-  typeof chatServiceModule.createThread
->;
-
 const mockRedirect = redirect as jest.MockedFunction<typeof redirect>;
 
 /**
  * Test suite for the main chat page that handles thread routing logic.
  *
  * This page serves as a router that either redirects to the most recent thread
- * or creates a new thread if none exists. It's the entry point for /chat route.
+ * or redirects to /chat/new for thread creation. It's the entry point for /chat route.
  */
 describe('/chat page', () => {
   beforeEach(() => {
@@ -64,32 +60,24 @@ describe('/chat page', () => {
     expect(mockRequireAuthServer).toHaveBeenCalled();
     expect(mockGetMostRecentThread).toHaveBeenCalledWith(userId);
     expect(mockRedirect).toHaveBeenCalledWith(`/chat/${threadId}`);
-    expect(mockCreateThread).not.toHaveBeenCalled();
   });
 
   /**
-   * Test that the page creates a new thread when user has no existing threads.
-   * This ensures new users or users who have deleted all threads get a fresh start.
+   * Test that the page redirects to /chat/new when user has no existing threads.
+   * This ensures new users or users who have deleted all threads are sent to the
+   * dedicated thread creation page for better separation of concerns.
    */
-  it('should create new thread and redirect when no threads exist', async () => {
+  it('should redirect to /chat/new when no threads exist', async () => {
     const userId = createUniqueUserId();
-    const newThreadId = 'new-thread-456';
 
     mockRequireAuthServer.mockResolvedValue(userId);
     mockGetMostRecentThread.mockResolvedValue(undefined);
-    mockCreateThread.mockResolvedValue({
-      id: newThreadId,
-      userId,
-      name: 'New Chat',
-      updatedAt: new Date(),
-    });
 
     await Page();
 
     expect(mockRequireAuthServer).toHaveBeenCalled();
     expect(mockGetMostRecentThread).toHaveBeenCalledWith(userId);
-    expect(mockCreateThread).toHaveBeenCalledWith(userId, 'New Chat');
-    expect(mockRedirect).toHaveBeenCalledWith(`/chat/${newThreadId}`);
+    expect(mockRedirect).toHaveBeenCalledWith('/chat/new');
   });
 
   /**
@@ -104,7 +92,6 @@ describe('/chat page', () => {
 
     expect(mockRequireAuthServer).toHaveBeenCalled();
     expect(mockGetMostRecentThread).not.toHaveBeenCalled();
-    expect(mockCreateThread).not.toHaveBeenCalled();
     expect(mockRedirect).not.toHaveBeenCalled();
   });
 });
