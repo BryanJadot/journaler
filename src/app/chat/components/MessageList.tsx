@@ -51,6 +51,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
   );
 }
 
+
 /**
  * Props for the MessageList component.
  */
@@ -61,13 +62,16 @@ interface MessageListProps {
 /**
  * Shared message list component that renders chat messages in both server and client contexts.
  *
+ * This is a pure presentational component that only handles message rendering.
+ * For scroll functionality, use ScrollableMessageList wrapper in client components.
+ *
  * @param props - Component props
  * @param props.messages - Array of normalized ChatMessage objects in chronological order
  * @returns JSX element containing the complete message list with consistent spacing and styling
  *
  * @example
  * ```tsx
- * // Server-side usage in Thread Page (simplified architecture)
+ * // Server-side usage in Thread Page
  * const initialMessages = await getThreadWithMessages(threadId);
  * return (
  *   <div>
@@ -76,27 +80,31 @@ interface MessageListProps {
  *   </div>
  * );
  *
- * // Client-side usage in ClientChatInput
+ * // Client-side usage with scrolling
  * return (
- *   <div>
- *     {messages.length > 0 && (
- *       <MessageList messages={messages.map(convertAIMessageToChatMessage)} />
- *     )}
- *     <form onSubmit={handleSubmit}>...</form>
- *   </div>
+ *   <ScrollableMessageList 
+ *     ref={messageListRef}
+ *     messages={messages.map(convertAIMessageToChatMessage)} 
+ *   />
  * );
  * ```
  *
  * @see {@link ChatMessage} - Unified message type used across all contexts
- * @see {@link ClientChatInput} - Client component that uses this for new messages
- * @see {@link Page} - Thread page component that uses this for existing messages
+ * @see {@link ScrollableMessageList} - Client wrapper with scroll functionality
  */
 export default function MessageList({ messages }: MessageListProps) {
   return (
     <div className="space-y-4">
-      {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
-      ))}
+      {messages.length === 0 ? (
+        <p className="text-gray-500 text-center py-4" role="status">
+          No messages yet. Start a conversation!
+        </p>
+      ) : (
+        messages.map((message) => (
+          <MessageBubble key={message.id} message={message} />
+        ))
+      )}
     </div>
   );
 }
+

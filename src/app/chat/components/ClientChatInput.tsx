@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import { useStreamingChat } from '@/lib/chat/hooks/useStreamingChat';
 import { useNewMessages } from '@/lib/store/thread-store'; // Key to hybrid rendering
 
-import MessageList from './MessageList';
+import ScrollableMessageList, {
+  ScrollableMessageListRef,
+} from './ScrollableMessageList';
 
 /**
  * Client-side chat input with streaming AI responses.
@@ -19,7 +21,7 @@ export default function ClientChatInput() {
   const newMessages = useNewMessages();
   const { status, sendMessage } = useStreamingChat();
   const [input, setInput] = useState('');
-
+  const messageListRef = useRef<ScrollableMessageListRef>(null);
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) return; // Prevent empty message submission
@@ -27,13 +29,17 @@ export default function ClientChatInput() {
     // Send message and immediately clear input for better UX
     sendMessage(input);
     setInput('');
+
+    if (messageListRef.current) {
+      messageListRef.current.scrollToBottom();
+    }
   };
 
   return (
     <div>
       {newMessages.length > 0 && (
         <div className="mb-6">
-          <MessageList messages={newMessages} />
+          <ScrollableMessageList ref={messageListRef} messages={newMessages} />
         </div>
       )}
 
