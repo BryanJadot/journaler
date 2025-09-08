@@ -1,3 +1,42 @@
+import { roleEnum, outputTypeEnum } from '@/lib/db/schema';
+
+/**
+ * Role type extracted from the database schema enum.
+ *
+ * Represents the different types of participants in a chat conversation.
+ * This type is derived from the roleEnum defined in the database schema,
+ * ensuring consistency between the database constraints and TypeScript types.
+ *
+ * @typedef {('user' | 'assistant' | 'developer')} Role
+ *
+ * @example
+ * ```typescript
+ * const userRole: Role = 'user';
+ * const botRole: Role = 'assistant';
+ * const systemRole: Role = 'developer'; // Maps to 'system' in AI SDK
+ * ```
+ */
+export type Role = (typeof roleEnum.enumValues)[number];
+
+/**
+ * Output type extracted from the database schema enum.
+ *
+ * Defines the format or presentation style of message content.
+ * This type ensures that message output formats are consistent
+ * with the database schema constraints.
+ *
+ * @typedef {('text' | 'markdown' | 'code' | 'json')} OutputType
+ *
+ * @example
+ * ```typescript
+ * const plainText: OutputType = 'text';
+ * const formattedText: OutputType = 'markdown';
+ * const codeBlock: OutputType = 'code';
+ * const structuredData: OutputType = 'json';
+ * ```
+ */
+export type OutputType = (typeof outputTypeEnum.enumValues)[number];
+
 /**
  * Represents a chat message in the application's chat system.
  *

@@ -11,9 +11,8 @@ import {
   getMostRecentThread,
   getThreadWithMessages,
   saveMessage,
-  type Role,
-  type OutputType,
 } from '../service';
+import type { Role, OutputType } from '../types';
 
 describe('Chat Service', () => {
   let testUserId: string;
