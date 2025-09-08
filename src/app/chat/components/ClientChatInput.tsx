@@ -2,15 +2,15 @@
 
 import React, { useState } from 'react';
 
-import { useAIChat } from '@/lib/chat/hooks/useAIChat';
+import { useStreamingChat } from '@/lib/chat/hooks/useStreamingChat';
 import { useThreadId, useThreadMessages } from '@/lib/store/thread-store';
 
 import MessageList from './MessageList';
 
 /**
- * Client-side chat input component with message display.
+ * Client-side chat input component with streaming message display.
  *
- * Handles real-time chat with AI, including message submission and display.
+ * Handles real-time chat with OpenAI streaming, including message submission and display.
  * Gets thread data from the store for consistent state management.
  *
  * @example
@@ -23,8 +23,8 @@ export default function ClientChatInput() {
   const threadId = useThreadId();
   const messages = useThreadMessages();
 
-  // Initialize AI chat integration
-  const { status, sendMessage } = useAIChat(threadId);
+  // Initialize streaming chat integration
+  const { status, sendMessage } = useStreamingChat();
 
   // Local input state
   const [input, setInput] = useState('');
@@ -33,7 +33,7 @@ export default function ClientChatInput() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    sendMessage({ text: input });
+    sendMessage(input);
     setInput('');
   };
 
@@ -52,18 +52,16 @@ export default function ClientChatInput() {
           value={input}
           placeholder="Send a message..."
           onChange={(e) => setInput(e.target.value)}
-          disabled={status !== 'ready'} // Disable during AI processing
+          disabled={status === 'loading'} // Disable during AI processing
           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           type="submit"
-          disabled={status !== 'ready' || !input.trim()} // Validate input and status
+          disabled={status === 'loading' || !input.trim()} // Validate input and status
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          {/* Dynamic button text based on AI SDK status */}
-          {status === 'streaming' || status === 'submitted'
-            ? 'Sending...'
-            : 'Send'}
+          {/* Dynamic button text based on streaming status */}
+          {status === 'loading' ? 'Sending...' : 'Send'}
         </button>
       </form>
     </div>
