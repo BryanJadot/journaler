@@ -26,21 +26,8 @@ interface ClientChatInputProps {
 function convertAIMessageToChatMessage(
   msg: ReturnType<typeof useChat>['messages'][0]
 ): ChatMessage {
-  /**
-   * STEP 1: Content Extraction and Flattening
-   *
-   * The AI SDK uses a "parts" array to support multi-modal messages (text, images, etc.).
-   * For our current text-only chat implementation, we extract and combine all text parts.
-   *
-   * Processing Strategy:
-   * - Filter for 'text' type parts only (future: support 'image', 'file', etc.)
-   * - Extract the text content from each valid part
-   * - Join all text parts into a single content string
-   * - Ignore non-text parts gracefully (returns empty string)
-   *
-   * This approach is extensible - when we add support for images or files,
-   * we can update this switch statement without changing the overall architecture.
-   */
+  //The AI SDK uses a "parts" array to support multi-modal messages (text, images, etc.).
+  //For our current text-only chat implementation, we extract and combine all text parts.
   const content = msg.parts
     .map((part) => {
       switch (part.type) {
@@ -52,19 +39,7 @@ function convertAIMessageToChatMessage(
     })
     .join(''); // Combine all text parts into single content string
 
-  /**
-   * STEP 2: Message Object Construction
-   *
-   * Transform AI SDK message structure to application's ChatMessage format.
-   * This ensures compatibility with both server-rendered (database) messages
-   * and client-rendered (AI SDK) messages in the same MessageList component.
-   *
-   * Field Mappings:
-   * - id: Preserved as-is (AI SDK generates unique IDs)
-   * - role: Type assertion to match application's role enum
-   * - content: Flattened text from parts array (step 1)
-   * - createdAt: TODO - extract from AI SDK metadata when available
-   */
+  // Transform AI SDK message structure to application's ChatMessage format.
   return {
     id: msg.id, // Unique message identifier from AI SDK
     role: msg.role as 'user' | 'assistant' | 'developer', // Role type assertion for TypeScript
