@@ -6,6 +6,8 @@ import { ChatMessage } from '@/lib/chat/types';
 
 import ClientChatInput from '../components/ClientChatInput';
 import MessageList from '../components/MessageList';
+import ThreadHeader from '../components/ThreadHeader';
+import ThreadInitializer from '../components/ThreadInitializer';
 
 /**
  * Dynamic chat thread page component that renders a specific chat conversation.
@@ -33,7 +35,7 @@ export default async function Page({
   const userId = await requireAuthServer();
 
   // Extract threadId from dynamic route parameters
-  const { threadId } = await params;
+  const { threadId } = params;
 
   // Fetch thread with all messages for server-side rendering
   const thread = await getThreadWithMessages(threadId);
@@ -56,8 +58,15 @@ export default async function Page({
   }));
   return (
     <div className="max-w-4xl mx-auto p-4">
-      {/* Thread identifier for debugging */}
-      <div className="text-sm text-gray-500 mb-4">Thread: {threadId}</div>
+      {/* Initialize thread store with server data */}
+      <ThreadInitializer
+        threadId={threadId}
+        threadName={thread.name}
+        messages={initialMessages}
+      />
+
+      {/* Thread header from store */}
+      <ThreadHeader />
 
       {/* Server-rendered existing messages */}
       {initialMessages.length > 0 && (
@@ -67,7 +76,7 @@ export default async function Page({
       )}
 
       {/* Client-side chat input and new messages */}
-      <ClientChatInput threadId={threadId} />
+      <ClientChatInput />
     </div>
   );
 }
