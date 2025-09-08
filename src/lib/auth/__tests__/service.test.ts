@@ -1,7 +1,7 @@
 import { createMockUserWithPassword } from '@/__tests__/helpers/test-helpers';
 import { createUser } from '@/lib/user/service';
 import * as userServiceModule from '@/lib/user/service';
-import { User } from '@/lib/user/types';
+import { User, LoginError, SignupError } from '@/lib/user/types';
 
 import { isSignupEnabled, loginUser, signupUser } from '../service';
 
@@ -605,7 +605,7 @@ describe('signupUser', () => {
 
       const failureResult = loginResultTrimmed as {
         success: false;
-        error: string;
+        error: LoginError;
       };
       expect(failureResult.error).toBe('invalid-password');
     });
@@ -640,7 +640,7 @@ describe('signupUser', () => {
 
       const wrongCaseFailure = wrongCaseResult as {
         success: false;
-        error: string;
+        error: LoginError;
       };
       expect(wrongCaseFailure.error).toBe('invalid-password');
     });
@@ -671,7 +671,7 @@ describe('signupUser', () => {
       results.forEach((result) => {
         expect(result.success).toBe(false);
 
-        const failureResult = result as { success: false; error: string };
+        const failureResult = result as { success: false; error: SignupError };
         expect(failureResult.error).toBe('username-taken');
       });
     });
