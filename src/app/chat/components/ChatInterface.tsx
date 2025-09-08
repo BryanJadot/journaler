@@ -5,19 +5,16 @@ import { DefaultChatTransport } from 'ai';
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 
+import { ChatMessage } from '@/lib/chat/types';
+
 interface ChatInterfaceProps {
   threadId: string;
-  initialMessages?: Array<{
-    id: string;
-    role: 'user' | 'assistant' | 'developer';
-    content: string;
-    createdAt: string;
-  }>;
+  initialMessages: ChatMessage[];
 }
 
 export default function ChatInterface({
   threadId,
-  initialMessages = [],
+  initialMessages,
 }: ChatInterfaceProps) {
   const { messages, status, sendMessage, setMessages } = useChat({
     transport: new DefaultChatTransport({
