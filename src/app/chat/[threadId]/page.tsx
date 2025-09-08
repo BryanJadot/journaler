@@ -4,14 +4,16 @@ import { requireAuthServer } from '@/lib/auth/require-auth-server';
 import { getThreadWithMessages } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
 
-import ChatInterface from '../components/ChatInterface';
+import ClientChatInput from '../components/ClientChatInput';
+import MessageList from '../components/MessageList';
 
 /**
  * Dynamic chat thread page component that renders a specific chat conversation.
  *
- * This page implements Next.js 13+ dynamic routing using the [threadId] folder structure.
- * It loads an existing chat thread with its message history and renders the ChatInterface
- * component with the thread data pre-populated.
+ * This page implements a hybrid server/client architecture:
+ * - Server-side: Pre-renders existing messages for instant display and better SEO
+ * - Client-side: Handles interactive chat input and real-time AI communication
+ * - Shared: Uses MessageList component for consistent message rendering
  *
  * @param params - Next.js dynamic route parameters containing the threadId
  * @param params.threadId - The unique identifier for the chat thread to load
@@ -19,45 +21,53 @@ import ChatInterface from '../components/ChatInterface';
  *
  * @throws {Error} Redirects to 404 if thread doesn't exist or user lacks access
  *
- * @example
- * // URL: /chat/abc123-def456-ghi789
- * // Will load thread with ID "abc123-def456-ghi789" and its message history
+ * @see {@link ClientChatInput} Client component for interactive chat features
+ * @see {@link ChatMessage} Unified message type used across server/client boundary
  */
 export default async function Page({
   params,
 }: {
   params: { threadId: string };
 }) {
-  // Ensure user is authenticated and get their ID
+  // Authenticate user and get their ID
   const userId = await requireAuthServer();
 
-  // Extract threadId from dynamic route parameters (Next.js 13+ async params)
+  // Extract threadId from dynamic route parameters
   const { threadId } = await params;
 
-  // Fetch the thread with all its messages from the database
+  // Fetch thread with all messages for server-side rendering
   const thread = await getThreadWithMessages(threadId);
 
-  // Return 404 if thread doesn't exist
+  // Return 404 if thread doesn't exist or user doesn't own it
   if (!thread) {
     notFound();
   }
 
-  // Security check: ensure the thread belongs to the authenticated user
-  // This prevents unauthorized access to other users' chat threads
   if (thread.userId !== userId) {
     notFound();
   }
 
-  // Transform database message format to client-side ChatMessage format
-  // This ensures compatibility between server-side data and client components
+  // Transform database messages to ChatMessage format for client compatibility
   const initialMessages: ChatMessage[] = thread.messages.map((msg) => ({
-    id: msg.id.toString(), // Convert database ID to string for client compatibility
-    role: msg.role, // Preserve message role (user, assistant, developer)
-    content: msg.content, // Message text content
-    createdAt: msg.createdAt.toISOString(), // Convert Date to ISO string for serialization
+    id: msg.id.toString(),
+    role: msg.role,
+    content: msg.content,
+    createdAt: msg.createdAt.toISOString(),
   }));
-
   return (
-    <ChatInterface threadId={threadId} initialMessages={initialMessages} />
+    <div className="max-w-4xl mx-auto p-4">
+      {/* Thread identifier for debugging */}
+      <div className="text-sm text-gray-500 mb-4">Thread: {threadId}</div>
+
+      {/* Server-rendered existing messages */}
+      {initialMessages.length > 0 && (
+        <div className="mb-6">
+          <MessageList messages={initialMessages} />
+        </div>
+      )}
+
+      {/* Client-side chat input and new messages */}
+      <ClientChatInput threadId={threadId} />
+    </div>
   );
 }
