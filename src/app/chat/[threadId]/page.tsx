@@ -29,13 +29,13 @@ import ThreadInitializer from '../components/ThreadInitializer';
 export default async function Page({
   params,
 }: {
-  params: { threadId: string };
+  params: Promise<{ threadId: string }>;
 }) {
   // Authenticate user and get their ID
   const userId = await requireAuthServer();
 
   // Extract threadId from dynamic route parameters
-  const { threadId } = params;
+  const { threadId } = await params;
 
   // Fetch thread with all messages for server-side rendering
   const thread = await getThreadWithMessages(threadId);
