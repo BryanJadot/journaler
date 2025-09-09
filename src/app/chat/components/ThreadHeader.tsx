@@ -29,7 +29,7 @@ export default function ThreadHeader({
   const threadName = storeThreadName || initialThreadName;
 
   return (
-    <div className="mb-4">
+    <div className="shrink-0 border-b p-4">
       {/* Display thread name with consistent styling */}
       <h1 className="text-2xl font-bold text-gray-900">{threadName}</h1>
     </div>

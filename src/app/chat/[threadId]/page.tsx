@@ -4,7 +4,7 @@ import { requireAuthServer } from '@/lib/auth/require-auth-server';
 import { getThreadWithMessages } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
 
-import ClientChatInput from '../components/ClientChatInput';
+import ChatContainer from '../components/ChatContainer';
 import MessageList from '../components/MessageList';
 import ThreadHeader from '../components/ThreadHeader';
 import ThreadInitializer from '../components/ThreadInitializer';
@@ -23,7 +23,7 @@ import ThreadInitializer from '../components/ThreadInitializer';
  *
  * @throws {Error} Redirects to 404 if thread doesn't exist or user lacks access
  *
- * @see {@link ClientChatInput} Client component for interactive chat features
+ * @see {@link ChatContainer} Client component for interactive chat features
  * @see {@link ChatMessage} Unified message type used across server/client boundary
  */
 export default async function Page({
@@ -39,7 +39,6 @@ export default async function Page({
 
   // Fetch thread with all messages for server-side rendering
   const thread = await getThreadWithMessages(threadId);
-  console.log(thread);
 
   // Return 404 if thread doesn't exist or user doesn't own it
   if (!thread) {
@@ -58,26 +57,23 @@ export default async function Page({
     createdAt: msg.createdAt.toISOString(),
   }));
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-4xl mx-auto p-4 h-dvh">
       {/* Initialize thread store with server data */}
       <ThreadInitializer
         threadId={threadId}
         threadName={thread.name}
         messages={initialMessages}
       />
+      <div className="flex flex-col h-full">
+        <ThreadHeader initialThreadName={thread.name} />
 
-      {/* Hybrid thread header - server-rendered initially, reactive to store changes */}
-      <ThreadHeader initialThreadName={thread.name} />
-
-      {/* Server-rendered existing messages */}
-      {initialMessages.length > 0 && (
-        <div className="mb-6">
-          <MessageList messages={initialMessages} />
-        </div>
-      )}
-
-      {/* Client-side chat input and new messages */}
-      <ClientChatInput />
+        <ChatContainer>
+          {/* Server-rendered initial messages */}
+          {initialMessages.length > 0 && (
+            <MessageList messages={initialMessages} />
+          )}
+        </ChatContainer>
+      </div>
     </div>
   );
 }
