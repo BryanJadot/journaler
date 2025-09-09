@@ -10,6 +10,7 @@ import {
   getThreadsByUser,
   getMostRecentThread,
   getThreadWithMessages,
+  getThreadSummariesForUser,
   saveMessage,
   verifyThreadOwnership,
 } from '../service';
@@ -596,6 +597,63 @@ describe('Chat Service', () => {
       // Thread should have all messages
       const threadWithMessages = await getThreadWithMessages(thread.id);
       expect(threadWithMessages?.messages).toHaveLength(5);
+    });
+  });
+
+  describe('getThreadSummariesForUser', () => {
+    it('should return thread summaries without messages', async () => {
+      // Create test threads
+      const thread1 = await createThread(testUserId, 'First Thread');
+      const thread2 = await createThread(testUserId, 'Second Thread');
+
+      const summaries = await getThreadSummariesForUser(testUserId);
+
+      expect(summaries).toHaveLength(2);
+      expect(summaries[0]).toEqual({
+        id: thread2.id, // Most recent first
+        name: 'Second Thread',
+        updatedAt: expect.any(Date),
+      });
+      expect(summaries[1]).toEqual({
+        id: thread1.id,
+        name: 'First Thread',
+        updatedAt: expect.any(Date),
+      });
+
+      // Ensure no messages are included
+      summaries.forEach((summary) => {
+        expect(summary).not.toHaveProperty('messages');
+      });
+    });
+
+    it('should return empty array for user with no threads', async () => {
+      const summaries = await getThreadSummariesForUser(testUserId);
+
+      expect(summaries).toEqual([]);
+    });
+
+    it('should only return threads for specified user', async () => {
+      const mockUser2 = createMockUser();
+      const [testUser2] = await db
+        .insert(users)
+        .values({
+          username: mockUser2.username,
+          passwordHash: 'hash456',
+        })
+        .returning();
+      const user2Id = testUser2.id;
+
+      await createThread(testUserId, 'User 1 Thread');
+      await createThread(user2Id, 'User 2 Thread');
+
+      const user1Summaries = await getThreadSummariesForUser(testUserId);
+      const user2Summaries = await getThreadSummariesForUser(user2Id);
+
+      expect(user1Summaries).toHaveLength(1);
+      expect(user1Summaries[0].name).toBe('User 1 Thread');
+
+      expect(user2Summaries).toHaveLength(1);
+      expect(user2Summaries[0].name).toBe('User 2 Thread');
     });
   });
 });

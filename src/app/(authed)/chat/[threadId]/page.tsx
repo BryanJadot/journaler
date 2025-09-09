@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 
+import JournalWrapper from '@/app/(authed)/components/JournalWrapper';
 import { getCachedAuthedUserOrRedirect } from '@/app/(authed)/get-authed-user';
 import { getThreadWithMessages } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
@@ -55,24 +56,27 @@ export default async function Page({
     content: msg.content,
     createdAt: msg.createdAt.toISOString(),
   }));
-  return (
-    <div className="max-w-4xl mx-auto p-4 h-dvh">
-      {/* Initialize thread store with server data */}
-      <ThreadInitializer
-        threadId={threadId}
-        threadName={thread.name}
-        messages={initialMessages}
-      />
-      <div className="flex flex-col h-full">
-        <ThreadHeader initialThreadName={thread.name} />
 
-        <ChatContainer>
-          {/* Server-rendered initial messages */}
-          {initialMessages.length > 0 && (
-            <MessageList messages={initialMessages} />
-          )}
-        </ChatContainer>
+  return (
+    <JournalWrapper>
+      <div className="max-w-4xl mx-auto p-4 h-dvh">
+        {/* Initialize thread store with server data */}
+        <ThreadInitializer
+          threadId={threadId}
+          threadName={thread.name}
+          messages={initialMessages}
+        />
+        <div className="flex flex-col h-full">
+          <ThreadHeader initialThreadName={thread.name} />
+
+          <ChatContainer>
+            {/* Server-rendered initial messages */}
+            {initialMessages.length > 0 && (
+              <MessageList messages={initialMessages} />
+            )}
+          </ChatContainer>
+        </div>
       </div>
-    </div>
+    </JournalWrapper>
   );
 }

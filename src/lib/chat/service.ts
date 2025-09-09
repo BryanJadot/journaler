@@ -72,6 +72,41 @@ export async function getThreadsByUser(userId: string) {
 }
 
 /**
+ * Retrieves thread summaries for user sidebar navigation (no messages).
+ *
+ * This function returns lightweight thread information optimized for sidebar
+ * navigation components where only essential metadata is needed. Unlike
+ * getThreadsByUser, this excludes all message data for better performance
+ * when rendering thread lists in UI components.
+ *
+ * @param {string} userId - The unique identifier of the user whose threads to retrieve
+ * @returns {Promise<Thread[]>} A promise that resolves to an array of thread summaries
+ *   containing only id, name, and updatedAt fields, sorted by most recent activity
+ *
+ * @example
+ * ```typescript
+ * // Ideal for sidebar navigation components
+ * const threadList = await getThreadSummariesForUser('user123');
+ * threadList.forEach(thread => {
+ *   console.log(`${thread.name} (${thread.updatedAt})`);
+ * });
+ * ```
+ *
+ * @throws {Error} Database error if query fails
+ */
+export async function getThreadSummariesForUser(userId: string) {
+  return db.query.threads.findMany({
+    where: eq(threads.userId, userId),
+    orderBy: [desc(threads.updatedAt)], // Most recently updated threads first
+    columns: {
+      id: true, // Required for navigation links
+      name: true, // Thread display title
+      updatedAt: true, // For sorting and timestamp display
+    },
+  });
+}
+
+/**
  * Retrieves the most recently updated thread for a user with all its messages.
  *
  * This function finds the user's most recently active thread and returns it
