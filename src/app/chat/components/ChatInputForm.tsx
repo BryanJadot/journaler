@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 
-import { useAIChat } from '@/lib/chat/hooks/useAIChat';
-import { useThreadId } from '@/lib/store/thread-store';
+import { useStreamingChat } from '@/lib/chat/hooks/useStreamingChat';
 
 /**
  * Props for the ChatInputForm component
@@ -19,20 +18,14 @@ interface ChatInputFormProps {
  * Gets thread ID from the store and manages the input state.
  */
 export default function ChatInputForm({ onMessageSent }: ChatInputFormProps) {
-  // Get thread data from store
-  const threadId = useThreadId();
-
-  // Initialize AI chat integration
-  const { status, sendMessage } = useAIChat(threadId);
-
-  // Local input state
+  const { status, sendMessage } = useStreamingChat();
   const [input, setInput] = useState('');
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    sendMessage({ text: input });
+    sendMessage(input);
     setInput('');
 
     // Call the callback after sending message
@@ -40,24 +33,23 @@ export default function ChatInputForm({ onMessageSent }: ChatInputFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 mt-4">
+    <form
+      onSubmit={handleSubmit}
+      className="flex gap-2 mt-4 shrink-0 border-t p-4"
+    >
       <input
         value={input}
         placeholder="Send a message..."
         onChange={(e) => setInput(e.target.value)}
         className="flex-1 rounded border p-2"
-        disabled={status === 'streaming' || status === 'submitted'}
+        disabled={status === 'loading'}
       />
       <button
         type="submit"
         className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:bg-gray-400"
-        disabled={
-          !input.trim() || status === 'streaming' || status === 'submitted'
-        }
+        disabled={!input.trim() || status === 'loading'}
       >
-        {status === 'streaming' || status === 'submitted'
-          ? 'Sending...'
-          : 'Send'}
+        {status === 'loading' ? 'Sending...' : 'Send'}
       </button>
     </form>
   );

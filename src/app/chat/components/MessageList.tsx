@@ -51,7 +51,6 @@ function MessageBubble({ message }: MessageBubbleProps) {
   );
 }
 
-
 /**
  * Props for the MessageList component.
  */
@@ -74,17 +73,16 @@ interface MessageListProps {
  * // Server-side usage in Thread Page
  * const initialMessages = await getThreadWithMessages(threadId);
  * return (
- *   <div>
+ *   <ChatContainer>
  *     <MessageList messages={initialMessages} />
- *     <ClientChatInput threadId={threadId} />
- *   </div>
+ *   </ChatContainer>
  * );
  *
  * // Client-side usage with scrolling
  * return (
- *   <ScrollableMessageList 
+ *   <ScrollableMessageList
  *     ref={messageListRef}
- *     messages={messages.map(convertAIMessageToChatMessage)} 
+ *     messages={messages.map(convertAIMessageToChatMessage)}
  *   />
  * );
  * ```
@@ -94,17 +92,19 @@ interface MessageListProps {
  */
 export default function MessageList({ messages }: MessageListProps) {
   return (
-    <div className="space-y-4">
+    <>
       {messages.length === 0 ? (
         <p className="text-gray-500 text-center py-4" role="status">
           No messages yet. Start a conversation!
         </p>
       ) : (
-        messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))
+        messages
+          .slice()
+          .reverse()
+          .map((message) => (
+            <MessageBubble key={message.id} message={message} />
+          ))
       )}
-    </div>
+    </>
   );
 }
-
