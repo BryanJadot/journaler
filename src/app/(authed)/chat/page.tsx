@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-import { requireAuthServer } from '@/lib/auth/require-auth-server';
+import { getCachedAuthedUserOrRedirect } from '@/app/(authed)/get-authed-user';
 import { getMostRecentThread } from '@/lib/chat/service';
 
 /**
@@ -24,8 +24,7 @@ import { getMostRecentThread } from '@/lib/chat/service';
  * // → If no threads: redirects to /chat/new
  */
 export default async function Page() {
-  // Ensure user is authenticated before proceeding
-  const userId = await requireAuthServer();
+  const userId = await getCachedAuthedUserOrRedirect();
 
   // Check if user has any existing chat threads
   const recentThread = await getMostRecentThread(userId);

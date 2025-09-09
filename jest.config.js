@@ -5,7 +5,11 @@ const config = {
   roots: ['<rootDir>/src'],
   testMatch: ['<rootDir>/src/**/*.(test|spec).+(ts|tsx|js)'],
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react'
+      }
+    }],
     '^.+\\.js$': 'ts-jest',
   },
   transformIgnorePatterns: ['node_modules/(?!(jose)/)'],

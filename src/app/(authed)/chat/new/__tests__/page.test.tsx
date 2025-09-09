@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-import { requireAuthServer } from '@/lib/auth/require-auth-server';
+import { getCachedAuthedUserOrRedirect } from '@/app/(authed)/get-authed-user';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
 import { createThread } from '@/lib/chat/service';
 
@@ -23,8 +23,8 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock authentication service to control auth state in tests
-jest.mock('@/lib/auth/require-auth-server', () => ({
-  requireAuthServer: jest.fn(),
+jest.mock('@/app/(authed)/get-authed-user', () => ({
+  getCachedAuthedUserOrRedirect: jest.fn(),
 }));
 
 // Mock chat service to simulate thread creation without database calls
@@ -51,14 +51,14 @@ describe('NewChatPage', () => {
    */
   it('should create a new thread and redirect to it when user is authenticated', async () => {
     // Setup mocks
-    (requireAuthServer as jest.Mock).mockResolvedValue(mockUserId);
+    (getCachedAuthedUserOrRedirect as jest.Mock).mockResolvedValue(mockUserId);
     (createThread as jest.Mock).mockResolvedValue({ id: mockThreadId });
 
     // Execute the page
     await NewChatPage();
 
     // Verify authentication was checked
-    expect(requireAuthServer).toHaveBeenCalledTimes(1);
+    expect(getCachedAuthedUserOrRedirect).toHaveBeenCalledTimes(1);
 
     // Verify thread was created with correct parameters
     expect(createThread).toHaveBeenCalledWith(mockUserId, DEFAULT_THREAD_NAME);
@@ -76,7 +76,7 @@ describe('NewChatPage', () => {
   it('should handle authentication failure', async () => {
     // Setup mock to throw authentication error
     const authError = new Error('Unauthorized');
-    (requireAuthServer as jest.Mock).mockRejectedValue(authError);
+    (getCachedAuthedUserOrRedirect as jest.Mock).mockRejectedValue(authError);
 
     // Execute and expect error to be thrown
     await expect(NewChatPage()).rejects.toThrow('Unauthorized');
@@ -94,7 +94,7 @@ describe('NewChatPage', () => {
    */
   it('should handle thread creation failure', async () => {
     // Setup mocks
-    (requireAuthServer as jest.Mock).mockResolvedValue(mockUserId);
+    (getCachedAuthedUserOrRedirect as jest.Mock).mockResolvedValue(mockUserId);
     const createError = new Error('Failed to create thread');
     (createThread as jest.Mock).mockRejectedValue(createError);
 
@@ -102,7 +102,7 @@ describe('NewChatPage', () => {
     await expect(NewChatPage()).rejects.toThrow('Failed to create thread');
 
     // Verify authentication was checked
-    expect(requireAuthServer).toHaveBeenCalledTimes(1);
+    expect(getCachedAuthedUserOrRedirect).toHaveBeenCalledTimes(1);
 
     // Verify thread creation was attempted
     expect(createThread).toHaveBeenCalledWith(mockUserId, DEFAULT_THREAD_NAME);
@@ -117,7 +117,7 @@ describe('NewChatPage', () => {
    */
   it('should use the correct default thread name from constants', async () => {
     // Setup mocks
-    (requireAuthServer as jest.Mock).mockResolvedValue(mockUserId);
+    (getCachedAuthedUserOrRedirect as jest.Mock).mockResolvedValue(mockUserId);
     (createThread as jest.Mock).mockResolvedValue({ id: mockThreadId });
 
     // Execute the page
@@ -134,7 +134,7 @@ describe('NewChatPage', () => {
   it('should redirect to the correct thread URL format', async () => {
     // Setup mocks with different thread ID
     const customThreadId = 'custom-thread-789';
-    (requireAuthServer as jest.Mock).mockResolvedValue(mockUserId);
+    (getCachedAuthedUserOrRedirect as jest.Mock).mockResolvedValue(mockUserId);
     (createThread as jest.Mock).mockResolvedValue({ id: customThreadId });
 
     // Execute the page

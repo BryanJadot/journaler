@@ -1,22 +1,22 @@
 import { redirect } from 'next/navigation';
 
 import { createUniqueUserId } from '@/__tests__/helpers/test-helpers';
-import * as requireAuthServerModule from '@/lib/auth/require-auth-server';
+import * as authModule from '@/app/(authed)/get-authed-user';
 import * as chatServiceModule from '@/lib/chat/service';
 
 import Page from '../page';
 
 // Mock external dependencies for isolated unit testing
-jest.mock('@/lib/auth/require-auth-server');
+jest.mock('@/app/(authed)/get-authed-user');
 jest.mock('@/lib/chat/service');
 jest.mock('next/navigation', () => ({
   redirect: jest.fn(),
 }));
 
 // Type-safe mock function references for better IDE support and type checking
-const mockRequireAuthServer =
-  requireAuthServerModule.requireAuthServer as jest.MockedFunction<
-    typeof requireAuthServerModule.requireAuthServer
+const mockGetCachedAuthedUserOrRedirect =
+  authModule.getCachedAuthedUserOrRedirect as jest.MockedFunction<
+    typeof authModule.getCachedAuthedUserOrRedirect
   >;
 
 const mockGetMostRecentThread =
@@ -46,7 +46,7 @@ describe('/chat page', () => {
     const userId = createUniqueUserId();
     const threadId = 'thread-123';
 
-    mockRequireAuthServer.mockResolvedValue(userId);
+    mockGetCachedAuthedUserOrRedirect.mockResolvedValue(userId);
     mockGetMostRecentThread.mockResolvedValue({
       id: threadId,
       userId,
@@ -57,7 +57,7 @@ describe('/chat page', () => {
 
     await Page();
 
-    expect(mockRequireAuthServer).toHaveBeenCalled();
+    expect(mockGetCachedAuthedUserOrRedirect).toHaveBeenCalled();
     expect(mockGetMostRecentThread).toHaveBeenCalledWith(userId);
     expect(mockRedirect).toHaveBeenCalledWith(`/chat/${threadId}`);
   });
@@ -70,12 +70,12 @@ describe('/chat page', () => {
   it('should redirect to /chat/new when no threads exist', async () => {
     const userId = createUniqueUserId();
 
-    mockRequireAuthServer.mockResolvedValue(userId);
+    mockGetCachedAuthedUserOrRedirect.mockResolvedValue(userId);
     mockGetMostRecentThread.mockResolvedValue(undefined);
 
     await Page();
 
-    expect(mockRequireAuthServer).toHaveBeenCalled();
+    expect(mockGetCachedAuthedUserOrRedirect).toHaveBeenCalled();
     expect(mockGetMostRecentThread).toHaveBeenCalledWith(userId);
     expect(mockRedirect).toHaveBeenCalledWith('/chat/new');
   });
@@ -86,11 +86,11 @@ describe('/chat page', () => {
    */
   it('should handle auth failure', async () => {
     const authError = new Error('REDIRECT: /login');
-    mockRequireAuthServer.mockRejectedValue(authError);
+    mockGetCachedAuthedUserOrRedirect.mockRejectedValue(authError);
 
     await expect(Page()).rejects.toThrow('REDIRECT: /login');
 
-    expect(mockRequireAuthServer).toHaveBeenCalled();
+    expect(mockGetCachedAuthedUserOrRedirect).toHaveBeenCalled();
     expect(mockGetMostRecentThread).not.toHaveBeenCalled();
     expect(mockRedirect).not.toHaveBeenCalled();
   });

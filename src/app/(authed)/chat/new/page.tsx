@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-import { requireAuthServer } from '@/lib/auth/require-auth-server';
+import { getCachedAuthedUserOrRedirect } from '@/app/(authed)/get-authed-user';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
 import { createThread } from '@/lib/chat/service';
 
@@ -25,8 +25,7 @@ import { createThread } from '@/lib/chat/service';
  * // GET /chat/new -> creates thread -> redirects to /chat/[threadId]
  */
 export default async function NewChatPage() {
-  // Ensure user is authenticated before proceeding
-  const userId = await requireAuthServer();
+  const userId = await getCachedAuthedUserOrRedirect();
 
   // Create a new thread with default name
   const newThread = await createThread(userId, DEFAULT_THREAD_NAME);

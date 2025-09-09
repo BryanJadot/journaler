@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import { requireAuthServer } from '@/lib/auth/require-auth-server';
+import { getCachedAuthedUserOrRedirect } from '@/app/(authed)/get-authed-user';
 import { getThreadWithMessages } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
 
@@ -31,8 +31,7 @@ export default async function Page({
 }: {
   params: Promise<{ threadId: string }>;
 }) {
-  // Authenticate user and get their ID
-  const userId = await requireAuthServer();
+  const userId = await getCachedAuthedUserOrRedirect();
 
   // Extract threadId from dynamic route parameters
   const { threadId } = await params;
