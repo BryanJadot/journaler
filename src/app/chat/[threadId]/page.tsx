@@ -39,6 +39,7 @@ export default async function Page({
 
   // Fetch thread with all messages for server-side rendering
   const thread = await getThreadWithMessages(threadId);
+  console.log(thread);
 
   // Return 404 if thread doesn't exist or user doesn't own it
   if (!thread) {
@@ -65,8 +66,8 @@ export default async function Page({
         messages={initialMessages}
       />
 
-      {/* Thread header from store */}
-      <ThreadHeader />
+      {/* Hybrid thread header - server-rendered initially, reactive to store changes */}
+      <ThreadHeader initialThreadName={thread.name} />
 
       {/* Server-rendered existing messages */}
       {initialMessages.length > 0 && (

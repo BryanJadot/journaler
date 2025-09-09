@@ -142,6 +142,47 @@ export async function getThreadWithMessages(threadId: string) {
 }
 
 /**
+ * Checks if a thread exists and belongs to a specific user (lightweight ownership verification).
+ *
+ * This function performs a minimal query to verify thread ownership without loading
+ * all messages, making it ideal for authentication checks in API endpoints.
+ * Returns only the essential thread metadata needed for ownership verification.
+ *
+ * @param {string} threadId - The unique identifier of the thread to verify
+ * @param {string} userId - The user ID to check ownership against
+ * @returns {Promise<boolean>} A promise that resolves to true if the user owns the thread
+ *
+ * @example
+ * ```typescript
+ * const canAccess = await verifyThreadOwnership('thread123', 'user456');
+ * if (!canAccess) {
+ *   throw new Error('Thread not found or access denied');
+ * }
+ * ```
+ *
+ * @throws {Error} Database error if query fails
+ */
+export async function verifyThreadOwnership(
+  threadId: string,
+  userId: string
+): Promise<boolean> {
+  // Handle empty or invalid inputs early to avoid database errors
+  if (!threadId || !userId) {
+    return false;
+  }
+
+  const thread = await db.query.threads.findFirst({
+    where: eq(threads.id, threadId),
+    columns: {
+      id: true,
+      userId: true,
+    },
+  });
+
+  return thread?.userId === userId;
+}
+
+/**
  * Saves a new message to a chat thread and updates the thread's timestamp.
  *
  * This function performs a transactional operation to ensure data consistency:

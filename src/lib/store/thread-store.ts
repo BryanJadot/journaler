@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
@@ -5,19 +6,69 @@ import { ChatMessage } from '@/lib/chat/types';
 
 /**
  * Thread store state interface
+ *
+ * Manages the current chat thread's state including messages and new message tracking.
+ * The newMessageIds Set is crucial for preventing double rendering in hybrid SSR/client scenarios.
  */
 interface ThreadState {
+  /** Unique identifier for the current thread */
   threadId: string;
+  /** Human-readable name/title for the thread */
   threadName: string;
+  /** Complete array of all messages in chronological order */
   messages: ChatMessage[];
+  /**
+   * Set of message IDs that were added during the current client session.
+   * This enables hybrid rendering where server renders initial messages
+   * and client only renders newly added messages to prevent duplication.
+   */
+  newMessageIds: Set<string>;
 }
 
 /**
  * Thread store actions interface
+ *
+ * Defines all operations for managing thread state, designed to support
+ * streaming chat with proper message lifecycle management.
  */
 interface ThreadActions {
+  /**
+   * Wholesale replacement of messages array (used for server initialization).
+   * Does not add to newMessageIds since these are existing server messages.
+   * @param messages - Complete array of messages to set
+   */
   setMessages: (messages: ChatMessage[]) => void;
 
+  /**
+   * Adds a user message with timestamp and tracks as "new" for hybrid rendering.
+   * Automatically generates unique ID and current timestamp.
+   * @param content - The user's message content
+   * @returns The created ChatMessage with generated ID
+   */
+  addUserMessage: (content: string) => ChatMessage;
+
+  /**
+   * Creates an empty assistant message placeholder for streaming responses.
+   * Marks as "new" and returns message for streaming updates.
+   * @returns The created assistant ChatMessage with empty content
+   */
+  startAssistantMessage: () => ChatMessage;
+
+  /**
+   * Updates an existing assistant message's content during streaming.
+   * Used to append tokens as they arrive from the AI API.
+   * @param messageId - ID of the message to update
+   * @param content - New complete content (not incremental)
+   */
+  updateAssistantMessage: (messageId: string, content: string) => void;
+
+  /**
+   * Initializes thread with server data, clearing newMessageIds.
+   * Used when loading a thread from the database on page load.
+   * @param threadId - Unique thread identifier
+   * @param threadName - Display name for the thread
+   * @param messages - Initial messages from server (not marked as "new")
+   */
   initializeThread: (
     threadId: string,
     threadName: string,
@@ -31,25 +82,109 @@ interface ThreadActions {
 type ThreadStore = ThreadState & ThreadActions;
 
 /**
- * Zustand store for managing current thread data.
+ * Zustand store for managing current thread data with hybrid SSR support.
+ *
+ * This store implements a sophisticated message tracking system using newMessageIds
+ * to distinguish between server-rendered messages and client-added messages.
+ * This prevents double rendering in hybrid applications where:
+ * - Server renders initial messages on page load
+ * - Client adds new messages during the session
+ * - Components can selectively render only new messages
  *
  * @example
  * ```tsx
+ * // Basic usage
  * const { threadId, messages, initializeThread } = useThread();
+ *
+ * // Hybrid rendering pattern
+ * const allMessages = useThreadMessages(); // Server + client messages
+ * const newMessages = useNewMessages(); // Only client-added messages
  * ```
  */
 export const useThread = create<ThreadStore>()(
   devtools(
-    (set) => ({
+    (set, _get) => ({
       // Initial state
       threadId: '',
       threadName: '',
       messages: [],
+      newMessageIds: new Set(),
 
       setMessages: (messages) => set({ messages }, false, 'setMessages'),
 
+      addUserMessage: (content) => {
+        // Generate unique ID using timestamp + random string for collision resistance
+        const userMessage: ChatMessage = {
+          id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          role: 'user',
+          content,
+          createdAt: new Date().toISOString(),
+        };
+
+        set(
+          (state) => ({
+            messages: [...state.messages, userMessage],
+            // Add to newMessageIds Set to track this as a client-added message
+            // This enables hybrid rendering where client components can show only new messages
+            newMessageIds: new Set([...state.newMessageIds, userMessage.id]),
+          }),
+          false,
+          'addUserMessage'
+        );
+
+        return userMessage;
+      },
+
+      startAssistantMessage: () => {
+        // Create placeholder message for streaming AI response
+        const assistantMessage: ChatMessage = {
+          id: `assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          role: 'assistant',
+          content: '', // Empty content will be populated via streaming
+          createdAt: new Date().toISOString(),
+        };
+
+        set(
+          (state) => ({
+            messages: [...state.messages, assistantMessage],
+            // Mark as new message so client components can render it immediately
+            // even while content is still streaming in
+            newMessageIds: new Set([
+              ...state.newMessageIds,
+              assistantMessage.id,
+            ]),
+          }),
+          false,
+          'startAssistantMessage'
+        );
+
+        return assistantMessage;
+      },
+
+      updateAssistantMessage: (messageId, content) => {
+        set(
+          (state) => ({
+            // Update message content while preserving all other properties
+            // This is called repeatedly during streaming to append new tokens
+            messages: state.messages.map((msg) =>
+              msg.id === messageId ? { ...msg, content } : msg
+            ),
+            // Note: We don't modify newMessageIds here since the message
+            // was already added to the set in startAssistantMessage
+          }),
+          false,
+          'updateAssistantMessage'
+        );
+      },
+
       initializeThread: (threadId, threadName, messages) =>
-        set({ threadId, threadName, messages }, false, 'initializeThread'),
+        // Initialize with server data and clear newMessageIds
+        // This ensures server messages are not treated as "new" client messages
+        set(
+          { threadId, threadName, messages, newMessageIds: new Set() },
+          false,
+          'initializeThread'
+        ),
     }),
     {
       name: 'thread-store',
@@ -77,6 +212,35 @@ export const useThreadName = () => useThread((state) => state.threadName);
 export const useThreadMessages = () => useThread((state) => state.messages);
 
 /**
- * Hook to get setMessages action
+ * Hook to get only new messages (added during current client session).
+ *
+ * This is the key to hybrid SSR/client rendering - it returns only messages
+ * that were added after the initial server render. This prevents double
+ * rendering where server renders initial messages and client tries to
+ * render them again.
+ *
+ * Use this hook in client components that should only show newly added
+ * messages, while server components render the initial message history.
+ *
+ * @returns Array of ChatMessage objects that were added during this session
+ *
+ * @example
+ * ```tsx
+ * // In a client component - only render new messages
+ * const newMessages = useNewMessages();
+ *
+ * // vs useThreadMessages() which returns ALL messages including server ones
+ * const allMessages = useThreadMessages();
+ * ```
  */
-export const useSetMessages = () => useThread((state) => state.setMessages);
+export const useNewMessages = () => {
+  const messages = useThread((state) => state.messages);
+  const newMessageIds = useThread((state) => state.newMessageIds);
+
+  // Memoize the filtered array to prevent infinite re-renders
+  // Only recalculate when messages or newMessageIds change
+  return useMemo(
+    () => messages.filter((msg) => newMessageIds.has(msg.id)),
+    [messages, newMessageIds]
+  );
+};

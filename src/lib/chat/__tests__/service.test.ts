@@ -11,6 +11,7 @@ import {
   getMostRecentThread,
   getThreadWithMessages,
   saveMessage,
+  verifyThreadOwnership,
 } from '../service';
 import type { Role, OutputType } from '../types';
 
@@ -484,6 +485,62 @@ describe('Chat Service', () => {
         '550e8400-e29b-41d4-a716-446655440003'
       );
       expect(threadWithMessages).toBeUndefined();
+    });
+  });
+
+  describe('verifyThreadOwnership', () => {
+    let threadId: string;
+
+    beforeEach(async () => {
+      const thread = await createThread(testUserId, 'Test Thread');
+      threadId = thread.id;
+
+      const _otherThread = await createThread(otherUserId, 'Other User Thread');
+    });
+
+    it('should return true for thread owner', async () => {
+      const result = await verifyThreadOwnership(threadId, testUserId);
+      expect(result).toBe(true);
+    });
+
+    it('should return false for non-owner', async () => {
+      const result = await verifyThreadOwnership(threadId, otherUserId);
+      expect(result).toBe(false);
+    });
+
+    it('should return false for non-existent thread', async () => {
+      const fakeThreadId = '550e8400-e29b-41d4-a716-446655440001';
+      const result = await verifyThreadOwnership(fakeThreadId, testUserId);
+      expect(result).toBe(false);
+    });
+
+    it('should return false for non-existent user', async () => {
+      const fakeUserId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+      const result = await verifyThreadOwnership(threadId, fakeUserId);
+      expect(result).toBe(false);
+    });
+
+    it('should work independently of thread messages', async () => {
+      // Add messages to thread to ensure the function doesn't load them
+      await saveMessage(threadId, 'user' as Role, 'Message 1');
+      await saveMessage(threadId, 'assistant' as Role, 'Message 2');
+      await saveMessage(threadId, 'user' as Role, 'Message 3');
+
+      const result = await verifyThreadOwnership(threadId, testUserId);
+      expect(result).toBe(true);
+
+      const otherResult = await verifyThreadOwnership(threadId, otherUserId);
+      expect(otherResult).toBe(false);
+    });
+
+    it('should handle empty thread ID', async () => {
+      const result = await verifyThreadOwnership('', testUserId);
+      expect(result).toBe(false);
+    });
+
+    it('should handle empty user ID', async () => {
+      const result = await verifyThreadOwnership(threadId, '');
+      expect(result).toBe(false);
     });
   });
 

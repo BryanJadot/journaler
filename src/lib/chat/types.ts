@@ -68,7 +68,7 @@ export type OutputType = (typeof outputTypeEnum.enumValues)[number];
  */
 export type ChatMessage = {
   id: string;
-  role: 'user' | 'assistant' | 'developer';
+  role: 'user' | 'assistant' | 'developer' | 'system';
   content: string;
   createdAt: string;
 };

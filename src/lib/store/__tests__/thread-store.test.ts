@@ -6,7 +6,7 @@ import { act, renderHook } from '@testing-library/react';
 import { ChatMessage } from '@/lib/chat/types';
 
 import {
-  useSetMessages,
+  useNewMessages,
   useThread,
   useThreadId,
   useThreadMessages,
@@ -67,7 +67,6 @@ describe('thread-store', () => {
   describe('message actions', () => {
     it('should set messages wholesale', () => {
       const { result: storeResult } = renderHook(() => useThread());
-      const setMessages = renderHook(() => useSetMessages()).result.current;
 
       // Initialize thread with one message to establish baseline
       act(() => {
@@ -80,15 +79,225 @@ describe('thread-store', () => {
 
       // Test wholesale replacement behavior - this is the key architectural decision
       // Instead of adding/updating individual messages, we replace the entire array
-      // This simulates how useAIChat syncs complete message state from AI SDK
+      // This simulates how initialization syncs complete message state from server
       act(() => {
-        setMessages([mockMessage2]); // Complete replacement, not merge
+        storeResult.current.setMessages([mockMessage2]); // Complete replacement, not merge
       });
 
       // Verify old message is gone and new message is present
       // This demonstrates the "source of truth" pattern where external systems
-      // (like AI SDK) provide complete state that replaces our local state
+      // (like server initialization) provide complete state that replaces our local state
       expect(storeResult.current.messages).toEqual([mockMessage2]);
+    });
+
+    it('should add user message with timestamp', () => {
+      const { result } = renderHook(() => useThread());
+
+      act(() => {
+        result.current.initializeThread('thread-123', 'Test Thread', []);
+      });
+
+      let userMessage: ChatMessage;
+      act(() => {
+        userMessage = result.current.addUserMessage('Hello, world!');
+      });
+
+      // Verify message was added to store
+      expect(result.current.messages).toHaveLength(1);
+      expect(result.current.messages[0]).toEqual(userMessage!);
+
+      // Verify message has correct properties
+      expect(userMessage!.role).toBe('user');
+      expect(userMessage!.content).toBe('Hello, world!');
+      expect(userMessage!.id).toMatch(/^user-\d+-[a-z0-9]+$/);
+      expect(userMessage!.createdAt).toBeDefined();
+      expect(new Date(userMessage!.createdAt)).toBeInstanceOf(Date);
+    });
+
+    it('should start assistant message with timestamp', () => {
+      const { result } = renderHook(() => useThread());
+
+      act(() => {
+        result.current.initializeThread('thread-123', 'Test Thread', []);
+      });
+
+      let assistantMessage: ChatMessage;
+      act(() => {
+        assistantMessage = result.current.startAssistantMessage();
+      });
+
+      // Verify message was added to store
+      expect(result.current.messages).toHaveLength(1);
+      expect(result.current.messages[0]).toEqual(assistantMessage!);
+
+      // Verify message has correct properties
+      expect(assistantMessage!.role).toBe('assistant');
+      expect(assistantMessage!.content).toBe(''); // Empty initially for streaming
+      expect(assistantMessage!.id).toMatch(/^assistant-\d+-[a-z0-9]+$/);
+      expect(assistantMessage!.createdAt).toBeDefined();
+      expect(new Date(assistantMessage!.createdAt)).toBeInstanceOf(Date);
+    });
+
+    it('should update assistant message content', () => {
+      const { result } = renderHook(() => useThread());
+
+      act(() => {
+        result.current.initializeThread('thread-123', 'Test Thread', []);
+      });
+
+      let assistantMessage: ChatMessage;
+      act(() => {
+        assistantMessage = result.current.startAssistantMessage();
+      });
+
+      // Update the assistant message content
+      act(() => {
+        result.current.updateAssistantMessage(
+          assistantMessage!.id,
+          'Hello back!'
+        );
+      });
+
+      // Verify message content was updated
+      expect(result.current.messages).toHaveLength(1);
+      expect(result.current.messages[0].content).toBe('Hello back!');
+      expect(result.current.messages[0].id).toBe(assistantMessage!.id);
+      expect(result.current.messages[0].createdAt).toBe(
+        assistantMessage!.createdAt
+      );
+    });
+
+    it('should handle streaming conversation flow', () => {
+      const { result } = renderHook(() => useThread());
+
+      act(() => {
+        result.current.initializeThread('thread-123', 'Test Thread', []);
+      });
+
+      // User sends message
+      let userMessage: ChatMessage;
+      act(() => {
+        userMessage = result.current.addUserMessage('What is 2+2?');
+      });
+
+      // Assistant message starts streaming
+      let assistantMessage: ChatMessage;
+      act(() => {
+        assistantMessage = result.current.startAssistantMessage();
+      });
+
+      expect(result.current.messages).toHaveLength(2);
+      expect(result.current.messages[0]).toEqual(userMessage!);
+      expect(result.current.messages[1]).toEqual(assistantMessage!);
+
+      // Streaming content updates
+      act(() => {
+        result.current.updateAssistantMessage(assistantMessage!.id, '2');
+      });
+
+      act(() => {
+        result.current.updateAssistantMessage(assistantMessage!.id, '2+2');
+      });
+
+      act(() => {
+        result.current.updateAssistantMessage(
+          assistantMessage!.id,
+          '2+2 equals 4'
+        );
+      });
+
+      // Verify final state
+      expect(result.current.messages).toHaveLength(2);
+      expect(result.current.messages[1].content).toBe('2+2 equals 4');
+      expect(result.current.messages[1].id).toBe(assistantMessage!.id);
+      expect(result.current.messages[1].createdAt).toBe(
+        assistantMessage!.createdAt
+      );
+    });
+
+    it('should not update non-existent message', () => {
+      const { result } = renderHook(() => useThread());
+
+      act(() => {
+        result.current.initializeThread('thread-123', 'Test Thread', [
+          mockMessage1,
+        ]);
+      });
+
+      // Try to update a message that doesn't exist
+      act(() => {
+        result.current.updateAssistantMessage('non-existent-id', 'New content');
+      });
+
+      // Original message should be unchanged
+      expect(result.current.messages).toEqual([mockMessage1]);
+    });
+
+    it('should track new messages separately from initial messages', () => {
+      const { result: threadResult } = renderHook(() => useThread());
+      const { result: newMessagesResult } = renderHook(() => useNewMessages());
+
+      // Initialize with existing messages (should not be tracked as new)
+      act(() => {
+        threadResult.current.initializeThread('thread-123', 'Test Thread', [
+          mockMessage1,
+        ]);
+      });
+
+      expect(threadResult.current.messages).toEqual([mockMessage1]);
+      expect(newMessagesResult.current).toEqual([]); // Initial messages are not "new"
+
+      // Add a user message (should be tracked as new)
+      let userMessage: ChatMessage;
+      act(() => {
+        userMessage = threadResult.current.addUserMessage('New user message');
+      });
+
+      // Add an assistant message (should be tracked as new)
+      let assistantMessage: ChatMessage;
+      act(() => {
+        assistantMessage = threadResult.current.startAssistantMessage();
+      });
+
+      // All messages should be in the main array
+      expect(threadResult.current.messages).toHaveLength(3);
+      expect(threadResult.current.messages).toEqual([
+        mockMessage1,
+        userMessage!,
+        assistantMessage!,
+      ]);
+
+      // Only the new messages should be in newMessages
+      expect(newMessagesResult.current).toHaveLength(2);
+      expect(newMessagesResult.current).toEqual([
+        userMessage!,
+        assistantMessage!,
+      ]);
+    });
+
+    it('should reset new message tracking when thread is reinitialized', () => {
+      const { result: threadResult } = renderHook(() => useThread());
+      const { result: newMessagesResult } = renderHook(() => useNewMessages());
+
+      // Add some new messages first
+      act(() => {
+        threadResult.current.initializeThread('thread-123', 'Test Thread', []);
+        threadResult.current.addUserMessage('Message 1');
+        threadResult.current.addUserMessage('Message 2');
+      });
+
+      expect(newMessagesResult.current).toHaveLength(2);
+
+      // Reinitialize thread with new data
+      act(() => {
+        threadResult.current.initializeThread('thread-456', 'New Thread', [
+          mockMessage1,
+        ]);
+      });
+
+      // New messages should be reset
+      expect(threadResult.current.messages).toEqual([mockMessage1]);
+      expect(newMessagesResult.current).toEqual([]); // Should be empty after reinitialize
     });
   });
 

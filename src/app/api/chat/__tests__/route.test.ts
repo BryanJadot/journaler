@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server';
+import OpenAI from 'openai';
 
-import {
-  createUniqueUserId,
-  createApiMessage,
-} from '@/__tests__/helpers/test-helpers';
+import { createUniqueUserId } from '@/__tests__/helpers/test-helpers';
 import * as cookiesModule from '@/lib/auth/cookies';
 import * as jwtModule from '@/lib/auth/jwt';
+import { ChatMessage } from '@/lib/chat/types';
+import { StreamingResponse } from '@/lib/chat/types/streaming';
 
 import { POST } from '../route';
 
@@ -15,13 +15,17 @@ jest.mock('@/lib/auth/jwt');
 // Mock the chat service functions
 jest.mock('@/lib/chat/service', () => ({
   saveMessage: jest.fn(),
-  getThreadWithMessages: jest.fn(),
+  verifyThreadOwnership: jest.fn(),
 }));
 
-// Mock the AI SDK
-jest.mock('ai', () => ({
-  streamText: jest.fn(),
-  convertToModelMessages: jest.fn(),
+// Mock the OpenAI client
+jest.mock('@/lib/openai/client', () => ({
+  openaiClient: {} as OpenAI,
+}));
+
+// Mock the streamOpenAITokens function
+jest.mock('../stream-openai-tokens', () => ({
+  streamOpenAITokens: jest.fn(),
 }));
 
 const mockGetAuthToken = cookiesModule.getAuthToken as jest.MockedFunction<
@@ -33,72 +37,106 @@ const mockVerifyAuthToken = jwtModule.verifyAuthToken as jest.MockedFunction<
 
 // Get mock chat service functions
 const chatService = jest.requireMock('@/lib/chat/service');
-const _mockSaveMessage = chatService.saveMessage as jest.MockedFunction<
-  () => Promise<unknown>
+const mockSaveMessage = chatService.saveMessage as jest.MockedFunction<
+  typeof chatService.saveMessage
 >;
-const mockGetThreadWithMessages =
-  chatService.getThreadWithMessages as jest.MockedFunction<
-    () => Promise<unknown>
+const mockVerifyThreadOwnership =
+  chatService.verifyThreadOwnership as jest.MockedFunction<
+    typeof chatService.verifyThreadOwnership
+  >;
+
+// Get mock streamOpenAITokens function
+const streamOpenAITokensModule = jest.requireMock('../stream-openai-tokens');
+const mockStreamOpenAITokens =
+  streamOpenAITokensModule.streamOpenAITokens as jest.MockedFunction<
+    typeof streamOpenAITokensModule.streamOpenAITokens
   >;
 
 /**
- * Test suite for the chat API endpoint.
+ * Test suite for the streaming chat API endpoint.
  *
- * This suite covers the complete chat functionality including:
+ * This suite covers the complete streaming chat functionality including:
  * - Authentication and authorization
- * - Message structure validation (AI SDK format compliance)
+ * - Request validation (message content and thread ID)
  * - Thread ownership verification
- * - AI response generation and persistence
+ * - JSON streaming response generation
+ * - Message persistence to database
  *
- * The tests focus heavily on message format validation because incorrect
- * message structure is a common source of AI SDK integration issues.
+ * The tests focus on the new JSON streaming approach with typed responses.
  */
 describe('/api/chat POST', () => {
   /**
-   * Helper function to create test requests with default valid structure.
-   * Note: Default messages use old format for backward compatibility with auth tests.
-   * Validation tests override with proper AI SDK format using createApiMessage.
+   * Helper function to create test requests with the new API format.
    */
   const createRequest = (
-    messages: unknown[] = [{ role: 'user', content: 'Hello' }], // Mixed formats for testing
-    threadId = '550e8400-e29b-41d4-a716-446655440001'
+    message = 'Hello',
+    threadId = '550e8400-e29b-41d4-a716-446655440001',
+    history: ChatMessage[] = []
   ) => {
     return new NextRequest('http://localhost/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages, threadId }),
+      body: JSON.stringify({ message, threadId, history }),
       headers: { 'Content-Type': 'application/json' },
     });
+  };
+
+  /**
+   * Helper function to parse JSON streaming response.
+   */
+  const parseStreamingResponse = async (
+    response: Response
+  ): Promise<StreamingResponse[]> => {
+    if (!response.body) throw new Error('No response body');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const results: StreamingResponse[] = [];
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.trim()) {
+          results.push(JSON.parse(line));
+        }
+      }
+    }
+
+    return results;
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Mock thread ownership validation - return a valid thread for the test user
-    mockGetThreadWithMessages.mockResolvedValue({
-      id: '550e8400-e29b-41d4-a716-446655440001',
-      userId: 'test-user-id',
-      name: 'Test Thread',
-      messages: [],
+    // Mock successful thread ownership verification
+    mockVerifyThreadOwnership.mockResolvedValue(true);
+
+    // Mock successful message saving
+    mockSaveMessage.mockResolvedValue({
+      id: 'message-id',
+      threadId: '550e8400-e29b-41d4-a716-446655440001',
+      role: 'user',
+      content: 'Hello',
+      outputType: 'text',
+      createdAt: new Date(),
     });
 
-    // Mock successful AI response
-    const mockResponse = new Response('mock stream response');
-    // Add mutable headers to the response
-    Object.defineProperty(mockResponse, 'headers', {
-      value: {
-        set: jest.fn(),
-        get: jest.fn(),
-      },
-      writable: true,
+    // Mock successful token generation
+    mockStreamOpenAITokens.mockImplementation(async function* (
+      _client: OpenAI,
+      _history: ChatMessage[],
+      _message: string
+    ) {
+      yield 'Hello';
+      yield ' world';
+      yield '!';
     });
-
-    const mockResult = {
-      toUIMessageStreamResponse: jest.fn().mockReturnValue(mockResponse),
-    };
-
-    const { streamText, convertToModelMessages } = jest.requireMock('ai');
-    streamText.mockReturnValue(mockResult);
-    convertToModelMessages.mockReturnValue([]);
   });
 
   it('should return 401 when no token is present', async () => {
@@ -142,7 +180,7 @@ describe('/api/chat POST', () => {
     expect(body).toEqual({ success: false, error: 'Invalid or expired token' });
   });
 
-  it('should process chat request when authenticated', async () => {
+  it('should return 400 when message content is missing', async () => {
     const userId = createUniqueUserId();
     mockGetAuthToken.mockResolvedValue('valid-token');
     mockVerifyAuthToken.mockResolvedValue({
@@ -150,169 +188,213 @@ describe('/api/chat POST', () => {
       payload: { userId, username: 'testuser' },
     });
 
-    // Mock thread ownership for this specific user
-    mockGetThreadWithMessages.mockResolvedValue({
-      id: '550e8400-e29b-41d4-a716-446655440001',
-      userId: userId, // Use the same userId as the authenticated user
-      name: 'Test Thread',
-      messages: [],
-    });
-
-    // Create properly formatted user message using test helper
-    // This demonstrates the correct AI SDK format with parts array
-    const messages = [createApiMessage('user', 'Hello, AI!')];
-    const request = createRequest(messages);
-
+    const request = createRequest(''); // Empty message
     const response = await POST(request);
 
-    const { streamText, convertToModelMessages } = jest.requireMock('ai');
-    // Verify AI SDK functions called with correct parameters
-    expect(streamText).toHaveBeenCalledWith(
-      expect.objectContaining({
-        model: 'openai/gpt-5', // Using GPT-5 for high-quality responses
-        temperature: 0.1, // Low temperature for consistent responses
-      })
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body).toEqual({ error: 'Message content is required' });
+  });
+
+  it('should return 400 when thread ID is missing', async () => {
+    const userId = createUniqueUserId();
+    mockGetAuthToken.mockResolvedValue('valid-token');
+    mockVerifyAuthToken.mockResolvedValue({
+      success: true,
+      payload: { userId, username: 'testuser' },
+    });
+
+    const request = createRequest('Hello', ''); // Empty threadId
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body).toEqual({ error: 'Thread ID is required' });
+  });
+
+  it('should return 400 when user does not own thread', async () => {
+    const userId = createUniqueUserId();
+    mockGetAuthToken.mockResolvedValue('valid-token');
+    mockVerifyAuthToken.mockResolvedValue({
+      success: true,
+      payload: { userId, username: 'testuser' },
+    });
+
+    // Mock thread ownership verification to return false
+    mockVerifyThreadOwnership.mockResolvedValue(false);
+
+    const request = createRequest();
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body).toEqual({ error: 'Thread not found or access denied' });
+  });
+
+  it('should stream JSON response when request is valid', async () => {
+    const userId = createUniqueUserId();
+    const threadId = '550e8400-e29b-41d4-a716-446655440001';
+    const message = 'Hello, how are you?';
+
+    mockGetAuthToken.mockResolvedValue('valid-token');
+    mockVerifyAuthToken.mockResolvedValue({
+      success: true,
+      payload: { userId, username: 'testuser' },
+    });
+
+    const request = createRequest(message, threadId);
+    const response = await POST(request);
+
+    // Verify response headers
+    expect(response.headers.get('Content-Type')).toBe('application/json');
+    expect(response.headers.get('Cache-Control')).toBe('no-cache');
+
+    // Verify service calls
+    expect(mockVerifyThreadOwnership).toHaveBeenCalledWith(threadId, userId);
+    expect(mockSaveMessage).toHaveBeenCalledWith(
+      threadId,
+      'user',
+      message,
+      'text'
     );
-    // Verify message format conversion was attempted
-    expect(convertToModelMessages).toHaveBeenCalledWith(messages);
-    expect(response).toBeInstanceOf(Response);
+    expect(mockStreamOpenAITokens).toHaveBeenCalledWith(
+      expect.any(Object),
+      [],
+      message
+    );
+
+    // Parse streaming response
+    const streamResponses = await parseStreamingResponse(response);
+
+    expect(streamResponses).toEqual([
+      { type: 'chunk', content: 'Hello' },
+      { type: 'chunk', content: ' world' },
+      { type: 'chunk', content: '!' },
+      { type: 'complete' },
+    ]);
+
+    // Verify assistant response was saved
+    expect(mockSaveMessage).toHaveBeenCalledWith(
+      threadId,
+      'assistant',
+      'Hello world!',
+      'text'
+    );
   });
 
-  /**
-   * Tests validation of AI SDK user message structure.
-   *
-   * This test verifies that the API correctly rejects user messages that don't
-   * conform to the AI SDK's required format. User messages MUST have a 'parts'
-   * array instead of a 'content' property to support multi-modal content.
-   *
-   * The validation is critical because:
-   * - Incorrect format causes AI SDK convertToModelMessages() to fail
-   * - User messages have different structure than assistant messages
-   * - Frontend must send messages in the correct format
-   */
-  it('should validate user message structure and reject invalid parts', async () => {
+  it('should include history in streamOpenAITokens call', async () => {
     const userId = createUniqueUserId();
+    const threadId = '550e8400-e29b-41d4-a716-446655440001';
+    const message = 'How are you?';
+    const history: ChatMessage[] = [
+      {
+        id: '1',
+        role: 'user',
+        content: 'Hello',
+        createdAt: '2023-01-01T00:00:00Z',
+      },
+      {
+        id: '2',
+        role: 'assistant',
+        content: 'Hi there!',
+        createdAt: '2023-01-01T00:01:00Z',
+      },
+    ];
+
     mockGetAuthToken.mockResolvedValue('valid-token');
     mockVerifyAuthToken.mockResolvedValue({
       success: true,
       payload: { userId, username: 'testuser' },
     });
 
-    // Mock thread ownership for this specific user
-    mockGetThreadWithMessages.mockResolvedValue({
-      id: '550e8400-e29b-41d4-a716-446655440001',
-      userId: userId,
-      name: 'Test Thread',
-      messages: [],
-    });
+    const request = createRequest(message, threadId, history);
+    await POST(request);
 
-    // Create message with invalid structure - using old 'content' format
-    // This simulates what happens when frontend sends messages in wrong format
-    const invalidMessage = {
-      id: 'test-id',
-      role: 'user',
-      content: 'This should fail', // Invalid: user messages need 'parts' array
-    };
-
-    const request = createRequest([invalidMessage]);
-    const response = await POST(request);
-
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.error).toContain('User message must have parts array');
+    expect(mockStreamOpenAITokens).toHaveBeenCalledWith(
+      expect.any(Object),
+      history,
+      message
+    );
   });
 
-  /**
-   * Tests validation of user message parts array structure.
-   *
-   * This test ensures the API enforces the single-part limitation for user messages.
-   * Currently, the system only supports messages with exactly one text part for
-   * simplicity, though the AI SDK format allows multiple parts for multi-modal content.
-   *
-   * This validation prevents:
-   * - Complex multi-part messages that aren't properly handled
-   * - Empty parts arrays that would cause processing errors
-   * - Malformed message structures from reaching the AI model
-   */
-  it('should validate user message parts array structure', async () => {
+  it('should handle streamOpenAITokens errors and stream error response', async () => {
     const userId = createUniqueUserId();
+    const threadId = '550e8400-e29b-41d4-a716-446655440001';
+
     mockGetAuthToken.mockResolvedValue('valid-token');
     mockVerifyAuthToken.mockResolvedValue({
       success: true,
       payload: { userId, username: 'testuser' },
     });
 
-    // Mock thread ownership for this specific user
-    mockGetThreadWithMessages.mockResolvedValue({
-      id: '550e8400-e29b-41d4-a716-446655440001',
-      userId: userId,
-      name: 'Test Thread',
-      messages: [],
+    // Mock streamOpenAITokens to throw an error
+    mockStreamOpenAITokens.mockImplementation(async function* () {
+      throw new Error('API rate limit exceeded');
     });
 
-    // Create message with multiple parts - currently not supported
-    // This simulates a multi-modal message that exceeds current system capabilities
-    const invalidMessage = {
-      id: 'test-id',
-      role: 'user',
-      parts: [
-        { type: 'text', text: 'First part' },
-        { type: 'text', text: 'Second part' }, // Invalid: system expects exactly one part
-      ],
-    };
-
-    const request = createRequest([invalidMessage]);
+    const request = createRequest();
     const response = await POST(request);
 
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.error).toContain('User message must have exactly one part');
+    const streamResponses = await parseStreamingResponse(response);
+
+    expect(streamResponses).toEqual([
+      { type: 'error', error: 'API rate limit exceeded' },
+    ]);
+
+    // Verify error was saved to database
+    expect(mockSaveMessage).toHaveBeenCalledWith(
+      threadId,
+      'assistant',
+      'API rate limit exceeded',
+      'error'
+    );
   });
 
-  /**
-   * Tests validation of message part type and content structure.
-   *
-   * This test verifies that the API correctly validates the internal structure
-   * of message parts. Each part must:
-   * - Have type 'text' (other types like 'image' not currently supported)
-   * - Contain a 'text' property with string content
-   *
-   * This validation ensures:
-   * - Only supported content types are processed
-   * - Text content is properly typed for database storage
-   * - Future multi-modal support has proper type checking foundation
-   */
-  it('should validate text part type and content', async () => {
+  it('should handle non-Error exceptions in streamOpenAITokens', async () => {
     const userId = createUniqueUserId();
+    const _threadId = '550e8400-e29b-41d4-a716-446655440001';
+
     mockGetAuthToken.mockResolvedValue('valid-token');
     mockVerifyAuthToken.mockResolvedValue({
       success: true,
       payload: { userId, username: 'testuser' },
     });
 
-    // Mock thread ownership for this specific user
-    mockGetThreadWithMessages.mockResolvedValue({
-      id: '550e8400-e29b-41d4-a716-446655440001',
-      userId: userId,
-      name: 'Test Thread',
-      messages: [],
+    // Mock streamOpenAITokens to throw a non-Error value
+    mockStreamOpenAITokens.mockImplementation(async function* () {
+      throw 'String error';
     });
 
-    // Create message with unsupported part type
-    // This simulates an attempt to send image content (not yet supported)
-    const invalidMessage = {
-      id: 'test-id',
-      role: 'user',
-      parts: [{ type: 'image', text: 'Should fail' }], // Invalid: only 'text' type supported
-    };
-
-    const request = createRequest([invalidMessage]);
+    const request = createRequest();
     const response = await POST(request);
 
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.error).toContain(
-      'User message part must be text type with string content'
+    const streamResponses = await parseStreamingResponse(response);
+
+    expect(streamResponses).toEqual([
+      { type: 'error', error: 'Generation failed: String error' },
+    ]);
+  });
+
+  it('should handle empty history array', async () => {
+    const userId = createUniqueUserId();
+
+    mockGetAuthToken.mockResolvedValue('valid-token');
+    mockVerifyAuthToken.mockResolvedValue({
+      success: true,
+      payload: { userId, username: 'testuser' },
+    });
+
+    const request = createRequest(
+      'Hello',
+      '550e8400-e29b-41d4-a716-446655440001',
+      []
+    );
+    await POST(request);
+
+    expect(mockStreamOpenAITokens).toHaveBeenCalledWith(
+      expect.any(Object),
+      [],
+      'Hello'
     );
   });
 });
