@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 
-import { getCachedAuthedUserOrRedirect } from '@/app/(authed)/get-authed-user';
+import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
 
 import Sidebar from './Sidebar';
 

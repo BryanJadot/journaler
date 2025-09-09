@@ -1,8 +1,13 @@
 import { redirect } from 'next/navigation';
 
-import { requireAuthServer } from '@/lib/auth/require-auth-server';
+import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
+import { getOrCreateChatUrl } from '@/lib/chat/redirect-helpers';
 
 export default async function HomePage() {
-  await requireAuthServer();
-  redirect('/chat');
+  // This will redirect to /login if not authenticated
+  const userId = await getCachedAuthedUserOrRedirect();
+
+  // If we get here, user is authenticated - redirect to their chat
+  const chatUrl = await getOrCreateChatUrl(userId);
+  redirect(chatUrl);
 }

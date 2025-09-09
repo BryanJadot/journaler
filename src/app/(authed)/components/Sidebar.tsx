@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
-import { getCachedAuthedUserOrRedirect } from '@/app/(authed)/get-authed-user';
+import { createNewThreadAction } from '@/app/(authed)/actions';
+import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
 import { getThreadSummariesForUser } from '@/lib/chat/service';
 
 /**
@@ -35,12 +36,14 @@ async function SidebarContent() {
       <div className="flex-1 overflow-y-auto">
         <nav className="p-2 space-y-1">
           {/* Primary action: Create new chat thread */}
-          <Link
-            href="/chat/new"
-            className="block w-full text-left px-3 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-          >
-            + New Chat
-          </Link>
+          <form action={createNewThreadAction}>
+            <button
+              type="submit"
+              className="block w-full text-left px-3 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors cursor-pointer"
+            >
+              + New Chat
+            </button>
+          </form>
 
           {/* Existing thread navigation links */}
           {threads.map((thread) => (

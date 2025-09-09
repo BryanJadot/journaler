@@ -1,9 +1,8 @@
 import { redirect } from 'next/navigation';
 
 import * as cookiesModule from '@/lib/auth/cookies';
+import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
 import * as jwtModule from '@/lib/auth/jwt';
-
-import { getCachedAuthedUserOrRedirect } from '../get-authed-user';
 
 // Mock dependencies
 jest.mock('next/navigation', () => ({

@@ -1,11 +1,11 @@
 import React from 'react';
 
-import * as authModule from '@/app/(authed)/get-authed-user';
+import * as authModule from '@/lib/auth/get-authed-user';
 
 import AuthedLayout from '../layout';
 
 // Mock the auth module
-jest.mock('@/app/(authed)/get-authed-user');
+jest.mock('@/lib/auth/get-authed-user');
 jest.mock('next/navigation', () => ({
   redirect: jest.fn(),
 }));

@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import JournalWrapper from '@/app/(authed)/components/JournalWrapper';
-import { getCachedAuthedUserOrRedirect } from '@/app/(authed)/get-authed-user';
+import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
 import { getThreadWithMessages } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
 

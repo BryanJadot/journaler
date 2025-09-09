@@ -9,8 +9,8 @@ import { verifyAuthToken } from '@/lib/auth/jwt';
  * This function is cached per request, so multiple calls within
  * the same request will return the same value without re-executing.
  *
- * Called initially in the (authed) layout to enforce authentication,
- * then can be called in any page to get the cached userId.
+ * Can be called from any component (pages, layouts, server actions)
+ * to get the authenticated user ID or automatically redirect to login.
  */
 export const getCachedAuthedUserOrRedirect = cache(
   async (): Promise<string> => {

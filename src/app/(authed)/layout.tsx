@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { getCachedAuthedUserOrRedirect } from '@/app/(authed)/get-authed-user';
+import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
 
 export default async function AuthedLayout({
   children,
