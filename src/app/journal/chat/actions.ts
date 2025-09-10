@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
+import { getChatUrl } from '@/lib/chat/redirect-helpers';
 import { createThread } from '@/lib/chat/service';
 
 /**
@@ -13,5 +14,5 @@ import { createThread } from '@/lib/chat/service';
 export async function createNewThreadAction() {
   const userId = await getCachedAuthedUserOrRedirect();
   const newThread = await createThread(userId, DEFAULT_THREAD_NAME);
-  redirect(`/chat/${newThread.id}`);
+  redirect(getChatUrl(newThread.id));
 }

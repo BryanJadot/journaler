@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 
 import { DEFAULT_THREAD_NAME } from '../constants';
-import { getOrCreateChatUrl } from '../redirect-helpers';
+import { getChatUrl, getOrCreateChatUrl } from '../redirect-helpers';
 import { createThread, getMostRecentThread } from '../service';
 
 // Mock the service functions
@@ -51,7 +51,7 @@ describe('getOrCreateChatUrl', () => {
 
     const result = await getOrCreateChatUrl(testUserId);
 
-    expect(result).toBe('/chat/thread-123');
+    expect(result).toBe(getChatUrl('thread-123'));
     expect(mockGetMostRecentThread).toHaveBeenCalledWith(testUserId);
     expect(mockCreateThread).not.toHaveBeenCalled();
   });
@@ -70,7 +70,7 @@ describe('getOrCreateChatUrl', () => {
 
     const result = await getOrCreateChatUrl(testUserId);
 
-    expect(result).toBe('/chat/new-thread-456');
+    expect(result).toBe(getChatUrl('new-thread-456'));
     expect(mockGetMostRecentThread).toHaveBeenCalledWith(testUserId);
     expect(mockCreateThread).toHaveBeenCalledWith(
       testUserId,
@@ -92,7 +92,7 @@ describe('getOrCreateChatUrl', () => {
 
     const result = await getOrCreateChatUrl(testUserId);
 
-    expect(result).toBe('/chat/undefined-thread-789');
+    expect(result).toBe(getChatUrl('undefined-thread-789'));
     expect(mockCreateThread).toHaveBeenCalledWith(
       testUserId,
       DEFAULT_THREAD_NAME
@@ -143,7 +143,49 @@ describe('getOrCreateChatUrl', () => {
 
     const result = await getOrCreateChatUrl(userId2);
 
-    expect(result).toBe('/chat/user2-thread-abc');
+    expect(result).toBe(getChatUrl('user2-thread-abc'));
     expect(mockGetMostRecentThread).toHaveBeenCalledWith(userId2);
+  });
+});
+
+describe('getChatUrl', () => {
+  it('should build correct URL for thread ID', () => {
+    const threadId = 'thread-123';
+    const result = getChatUrl(threadId);
+
+    expect(result).toBe('/journal/chat/thread-123');
+  });
+
+  it('should handle different thread ID formats', () => {
+    const testCases = [
+      { threadId: 'simple-id', expected: '/journal/chat/simple-id' },
+      {
+        threadId: 'uuid-123e4567-e89b-12d3-a456-426614174000',
+        expected: '/journal/chat/uuid-123e4567-e89b-12d3-a456-426614174000',
+      },
+      {
+        threadId: 'thread_with_underscores',
+        expected: '/journal/chat/thread_with_underscores',
+      },
+      {
+        threadId: 'thread-with-dashes',
+        expected: '/journal/chat/thread-with-dashes',
+      },
+      { threadId: '12345', expected: '/journal/chat/12345' },
+    ];
+
+    testCases.forEach(({ threadId, expected }) => {
+      expect(getChatUrl(threadId)).toBe(expected);
+    });
+  });
+
+  it('should throw error for empty string thread ID', () => {
+    expect(() => getChatUrl('')).toThrow('Thread ID cannot be empty');
+  });
+
+  it('should throw error for whitespace-only thread ID', () => {
+    expect(() => getChatUrl('   ')).toThrow('Thread ID cannot be empty');
+    expect(() => getChatUrl('\t')).toThrow('Thread ID cannot be empty');
+    expect(() => getChatUrl('\n')).toThrow('Thread ID cannot be empty');
   });
 });

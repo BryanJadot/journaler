@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
+import { getChatUrl } from '@/lib/chat/redirect-helpers';
 import { createThread } from '@/lib/chat/service';
 
 import { createNewThreadAction } from '../actions';
@@ -42,7 +43,7 @@ describe('createNewThreadAction', () => {
     expect(createThread).toHaveBeenCalledWith(mockUserId, DEFAULT_THREAD_NAME);
 
     // Verify redirect to the new thread
-    expect(redirect).toHaveBeenCalledWith(`/chat/${mockThreadId}`);
+    expect(redirect).toHaveBeenCalledWith(getChatUrl(mockThreadId));
   });
 
   it('should propagate authentication errors', async () => {

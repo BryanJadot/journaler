@@ -1,7 +1,8 @@
 import Link from 'next/link';
 
-import { createNewThreadAction } from '@/app/(authed)/actions';
+import { createNewThreadAction } from '@/app/journal/chat/actions';
 import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
+import { getChatUrl } from '@/lib/chat/redirect-helpers';
 import { getThreadSummariesForUser } from '@/lib/chat/service';
 
 /**
@@ -49,7 +50,7 @@ async function SidebarContent() {
           {threads.map((thread) => (
             <Link
               key={thread.id}
-              href={`/chat/${thread.id}`}
+              href={getChatUrl(thread.id)}
               className="block px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors truncate"
               title={thread.name} // Show full name on hover for long thread names
             >
