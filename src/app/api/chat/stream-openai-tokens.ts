@@ -50,7 +50,7 @@ export async function* streamOpenAITokens(
   // Create a streaming Responses API call using GPT-5 model
   // The Responses API provides better streaming performance than Chat Completions
   const stream = await client.responses.stream({
-    model: 'gpt-5', // Latest model for best performance and quality
+    model: 'gpt-5-mini', // Latest model for best performance and quality
     input,
   });
 

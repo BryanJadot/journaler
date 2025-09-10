@@ -62,7 +62,7 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5',
+      model: 'gpt-5-mini',
       input: [
         { role: 'user', content: 'Hello' },
         { role: 'assistant', content: 'Hi there!' },
@@ -111,7 +111,7 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5',
+      model: 'gpt-5-mini',
       input: [{ role: 'user', content: 'First message' }],
     });
   });
@@ -212,7 +212,7 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5',
+      model: 'gpt-5-mini',
       input: [
         { role: 'system', content: 'You are helpful' },
         { role: 'user', content: 'Hi' },
@@ -237,7 +237,7 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5',
+      model: 'gpt-5-mini',
       input: [{ role: 'user', content: 'Test message' }],
     });
     expect(results).toEqual(['Test']);
