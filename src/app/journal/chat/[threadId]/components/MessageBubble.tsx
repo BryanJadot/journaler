@@ -19,7 +19,7 @@ function UserMessageBubble({ message }: MessageBubbleProps) {
 
 function AssistantMessageBubble({ message }: MessageBubbleProps) {
   return (
-    <div className="prose prose-sm max-w-full">
+    <div className="prose prose-md max-w-full">
       {/* Message content with markdown support */}
       <ReactMarkdown>{message.content}</ReactMarkdown>
     </div>

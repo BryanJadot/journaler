@@ -92,15 +92,17 @@ export default function ChatContainer({ children }: ChatContainerProps) {
 
   return (
     <div className="flex flex-col h-screen w-full bg-base-100">
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-y-auto flex flex-col-reverse px-4 py-8 gap-4"
-      >
-        {/* Live messages from store */}
-        {newMessages.length > 0 && <MessageList messages={newMessages} />}
+      <div className="overflow-y-auto flex flex-col items-center">
+        <div
+          ref={containerRef}
+          className="flex-1 flex flex-col-reverse px-4 py-8 gap-4 max-w-4xl"
+        >
+          {/* Live messages from store */}
+          {newMessages.length > 0 && <MessageList messages={newMessages} />}
 
-        {/* Server-rendered content passed as children */}
-        {children}
+          {/* Server-rendered content passed as children */}
+          {children}
+        </div>
       </div>
 
       {/* Chat input form */}
