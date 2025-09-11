@@ -91,10 +91,10 @@ export default function ChatContainer({ children }: ChatContainerProps) {
   const { scrollToBottom } = useAutoScroll(newMessages, containerRef);
 
   return (
-    <>
+    <div className="flex flex-col h-screen w-full bg-base-100">
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto flex flex-col-reverse p-4 min-h-0"
+        className="flex-1 overflow-y-auto flex flex-col-reverse px-4 py-8 gap-4"
       >
         {/* Live messages from store */}
         {newMessages.length > 0 && <MessageList messages={newMessages} />}
@@ -104,7 +104,9 @@ export default function ChatContainer({ children }: ChatContainerProps) {
       </div>
 
       {/* Chat input form */}
-      <ChatInputForm onMessageSent={scrollToBottom} />
-    </>
+      <div className="shrink-0">
+        <ChatInputForm onMessageSent={scrollToBottom} />
+      </div>
+    </div>
   );
 }

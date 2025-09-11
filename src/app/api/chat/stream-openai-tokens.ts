@@ -49,9 +49,11 @@ export async function* streamOpenAITokens(
 
   // Create a streaming Responses API call using GPT-5 model
   // The Responses API provides better streaming performance than Chat Completions
-  const stream = await client.responses.stream({
+  const stream = client.responses.stream({
     model: 'gpt-5-mini', // Latest model for best performance and quality
     input,
+    instructions:
+      'You are a helpful assistant that always outputs responses in valid Markdown. Every response must be valid Markdown and render correctly. Prefer structured elements such as headings (##), bullet points, numbered lists, bold, italics, links, and fenced code blocks. Do not use plain text formatting unless Markdown cannot express it.',
   });
 
   // Process streaming events from OpenAI

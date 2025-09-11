@@ -3,7 +3,7 @@ import { eq, desc } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { threads, messages } from '@/lib/db/schema';
 
-import type { Role, OutputType } from './types';
+import type { Role, OutputType, ThreadSummary } from './types';
 
 /**
  * Creates a new chat thread for a user.
@@ -94,7 +94,9 @@ export async function getThreadsByUser(userId: string) {
  *
  * @throws {Error} Database error if query fails
  */
-export async function getThreadSummariesForUser(userId: string) {
+export async function getThreadSummariesForUser(
+  userId: string
+): Promise<ThreadSummary[]> {
   return db.query.threads.findMany({
     where: eq(threads.userId, userId),
     orderBy: [desc(threads.updatedAt)], // Most recently updated threads first

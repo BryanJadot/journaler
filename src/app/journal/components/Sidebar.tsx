@@ -1,102 +1,121 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 
 import { createNewThreadAction } from '@/app/journal/chat/actions';
 import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
 import { getChatUrl } from '@/lib/chat/redirect-helpers';
 import { getThreadSummariesForUser } from '@/lib/chat/service';
+import { ThreadSummary } from '@/lib/chat/types';
 
 /**
- * Internal component that renders the sidebar content with user's chat threads.
+ * Loading skeleton component displayed while the sidebar fetches thread data.
+ * Renders placeholder elements to prevent layout shift during async data loading.
  *
- * This async server component fetches the authenticated user's thread summaries
- * and renders them as navigation links. The component handles three states:
- * - Loading (handled by parent Suspense boundary)
- * - Empty state (shows "No threads yet" message)
- * - Populated state (shows thread navigation links)
- *
- * @returns {Promise<JSX.Element>} The rendered sidebar content
- *
- * @throws {Error} Redirects to login if user is not authenticated
- * @throws {Error} Database error if thread fetching fails
+ * @returns {JSX.Element} Three skeleton loading bars simulating thread items
  */
-async function SidebarContent() {
-  // Verify authentication and get user ID (redirects if not authenticated)
-  const userId = await getCachedAuthedUserOrRedirect();
-
-  // Fetch lightweight thread summaries for navigation (no message content)
-  const threads = await getThreadSummariesForUser(userId);
-
+export function SidebarThreadsSkeleton() {
   return (
-    <div className="w-64 h-full bg-gray-50 border-r border-gray-200 flex flex-col">
-      {/* Fixed header section */}
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Chat Threads</h2>
-      </div>
-
-      {/* Scrollable navigation area */}
-      <div className="flex-1 overflow-y-auto">
-        <nav className="p-2 space-y-1">
-          {/* Primary action: Create new chat thread */}
-          <form action={createNewThreadAction}>
-            <button
-              type="submit"
-              className="block w-full text-left px-3 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors cursor-pointer"
-            >
-              + New Chat
-            </button>
-          </form>
-
-          {/* Existing thread navigation links */}
-          {threads.map((thread) => (
-            <Link
-              key={thread.id}
-              href={getChatUrl(thread.id)}
-              className="block px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors truncate"
-              title={thread.name} // Show full name on hover for long thread names
-            >
-              {thread.name}
-            </Link>
-          ))}
-
-          {/* Empty state when user has no threads */}
-          {threads.length === 0 && (
-            <div className="px-3 py-2 text-sm text-gray-500 italic">
-              No threads yet
-            </div>
-          )}
-        </nav>
-      </div>
-    </div>
+    <>
+      {/* Render 3 skeleton items as loading placeholders */}
+      {Array.from({ length: 10 }, (_, i) => (
+        <div key={i} className="skeleton h-6 bg-base-300"></div>
+      ))}
+    </>
   );
 }
 
 /**
- * Sidebar navigation component for authenticated chat application.
+ * Renders the list of chat thread navigation links.
+ * Handles both populated and empty states for the thread list.
  *
- * This component provides a fixed-width navigation sidebar that displays:
- * - A "New Chat" button to create threads
- * - A scrollable list of the user's existing chat threads
- * - An empty state message when no threads exist
+ * @param {Object} props - Component props
+ * @param {ThreadSummary[]} props.threads - Array of thread summaries to display
+ * @returns {JSX.Element} List of clickable thread links or empty state message
+ */
+export function SidebarThreads({ threads }: { threads: ThreadSummary[] }) {
+  return (
+    <ul className="menu w-full">
+      {/* Map through threads and create navigation links */}
+      {threads.map((thread) => (
+        <li key={thread.id}>
+          <Link
+            href={getChatUrl(thread.id)}
+            className="menu w-full"
+            title={thread.name} // Tooltip shows full name for truncated text
+          >
+            {thread.name}
+          </Link>
+        </li>
+      ))}
+
+      {/* Display helpful message when user has no chat threads */}
+      {threads.length === 0 && (
+        <div className="px-3 py-2 text-sm text-neutral italic">
+          No threads yet
+        </div>
+      )}
+    </ul>
+  );
+}
+
+/**
+ * Main sidebar navigation component for the chat application.
  *
- * The component is designed to work within a Suspense boundary for loading states
- * and automatically handles user authentication verification.
+ * This async server component:
+ * - Authenticates the current user (redirects to login if not authenticated)
+ * - Fetches the user's chat thread summaries
+ * - Renders a fixed sidebar with thread navigation
  *
- * @returns {JSX.Element} The sidebar navigation component
+ * The sidebar features:
+ * - Fixed 256px width (w-64 in Tailwind)
+ * - Sticky header with title
+ * - "New Chat" button for creating threads via server action
+ * - Scrollable list of existing threads
+ * - Responsive hover states and transitions
+ *
+ * @async
+ * @returns {Promise<JSX.Element>} The complete sidebar component
  *
  * @example
- * ```tsx
- * // Used within layout with Suspense boundary
+ * // Usage in a layout component
  * <Suspense fallback={<SidebarSkeleton />}>
  *   <Sidebar />
  * </Suspense>
- * ```
  *
- * Architecture notes:
- * - Uses server-side rendering to fetch thread data
- * - Implements responsive design with fixed width (w-64 = 256px)
- * - Thread list is ordered by most recent activity (handled by service layer)
- * - Long thread names are truncated with ellipsis and show full text on hover
+ * @throws Will redirect to login page if user is not authenticated
  */
-export default function Sidebar() {
-  return <SidebarContent />;
+export async function SidebarContents() {
+  // Authenticate user and retrieve their ID
+  // This will automatically redirect to login if user is not authenticated
+  const userId = await getCachedAuthedUserOrRedirect();
+
+  // Fetch all thread summaries for the authenticated user
+  // These are lightweight objects containing just ID and name, not full message history
+  const threads = await getThreadSummariesForUser(userId);
+
+  return (
+    <div className="flex flex-col w-80 h-screen bg-base-200 border-r border-base-300">
+      {/*
+            New Chat button - uses server action for thread creation
+            Form submission triggers createNewThreadAction which:
+            1. Creates a new thread in the database
+            2. Redirects user to the new thread's chat page
+          */}
+      <form action={createNewThreadAction} className="shrink-0 p-2">
+        <button type="submit" className="btn btn-primary btn-soft w-full">
+          + New Chat
+        </button>
+      </form>
+
+      {/*
+            Thread list with Suspense boundary for progressive rendering
+            Shows skeleton loader while threads are being fetched
+          */}
+      <div className="border-t border-base-300 flex flex-col flex-1 overflow-y-auto">
+        <Suspense fallback={<SidebarThreadsSkeleton />}>
+          <SidebarThreads threads={threads} />
+        </Suspense>
+      </div>
+    </div>
+  );
 }

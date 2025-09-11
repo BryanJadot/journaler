@@ -5,10 +5,9 @@ import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
 import { getThreadWithMessages } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
 
-import ChatContainer from '../components/ChatContainer';
-import MessageList from '../components/MessageList';
-import ThreadHeader from '../components/ThreadHeader';
-import ThreadInitializer from '../components/ThreadInitializer';
+import ChatContainer from './components/ChatContainer';
+import MessageList from './components/MessageList';
+import ThreadInitializer from './components/ThreadInitializer';
 
 /**
  * Dynamic chat thread page component that renders a specific chat conversation.
@@ -59,24 +58,18 @@ export default async function Page({
 
   return (
     <JournalWrapper>
-      <div className="max-w-4xl mx-auto p-4 h-dvh">
-        {/* Initialize thread store with server data */}
-        <ThreadInitializer
-          threadId={threadId}
-          threadName={thread.name}
-          messages={initialMessages}
-        />
-        <div className="flex flex-col h-full">
-          <ThreadHeader initialThreadName={thread.name} />
-
-          <ChatContainer>
-            {/* Server-rendered initial messages */}
-            {initialMessages.length > 0 && (
-              <MessageList messages={initialMessages} />
-            )}
-          </ChatContainer>
-        </div>
-      </div>
+      {/* Initialize thread store with server data */}
+      <ThreadInitializer
+        threadId={threadId}
+        threadName={thread.name}
+        messages={initialMessages}
+      />
+      <ChatContainer>
+        {/* Server-rendered initial messages */}
+        {initialMessages.length > 0 && (
+          <MessageList messages={initialMessages} />
+        )}
+      </ChatContainer>
     </JournalWrapper>
   );
 }

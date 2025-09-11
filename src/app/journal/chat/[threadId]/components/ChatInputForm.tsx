@@ -33,24 +33,14 @@ export default function ChatInputForm({ onMessageSent }: ChatInputFormProps) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex gap-2 mt-4 shrink-0 border-t p-4"
-    >
+    <form onSubmit={handleSubmit} className="flex flex-row pb-1 px-3">
       <input
         value={input}
         placeholder="Send a message..."
         onChange={(e) => setInput(e.target.value)}
-        className="flex-1 rounded border p-2"
+        className="input input-primary flex-1 text-md"
         disabled={status === 'loading'}
       />
-      <button
-        type="submit"
-        className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:bg-gray-400"
-        disabled={!input.trim() || status === 'loading'}
-      >
-        {status === 'loading' ? 'Sending...' : 'Send'}
-      </button>
     </form>
   );
 }
