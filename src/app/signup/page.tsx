@@ -6,6 +6,14 @@ import { useActionState } from 'react';
 
 import { signupAction } from '@/lib/auth/actions';
 
+/**
+ * SignupPage component that renders a user registration form.
+ *
+ * Handles new user account creation with username and password.
+ * Uses server action for registration with automatic redirect on success.
+ *
+ * @returns User registration page with form and validation
+ */
 export default function SignupPage() {
   const [state, formAction, isPending] = useActionState(signupAction, null);
 

@@ -95,7 +95,7 @@ export default function ChatContainer({ children }: ChatContainerProps) {
       <div className="overflow-y-auto flex flex-col items-center">
         <div
           ref={containerRef}
-          className="flex-1 flex flex-col-reverse px-4 py-8 gap-4 max-w-4xl"
+          className="flex-1 flex flex-col-reverse px-4 py-8 gap-8 max-w-4xl"
         >
           {/* Live messages from store */}
           {newMessages.length > 0 && <MessageList messages={newMessages} />}

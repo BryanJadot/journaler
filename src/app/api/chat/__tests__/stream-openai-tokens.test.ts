@@ -5,31 +5,11 @@ import { ChatMessage } from '@/lib/chat/types';
 
 import { streamOpenAITokens } from '../stream-openai-tokens';
 
-type UnknownStream = AsyncIterable<unknown>;
-
 describe('streamOpenAITokens', () => {
   let mockClient: jest.Mocked<OpenAI>;
-  let mockStream: UnknownStream;
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Create mock stream with async iterator
-    mockStream = {
-      [Symbol.asyncIterator]: jest.fn() as () => AsyncIterator<unknown>,
-    };
-
-    // Create mock OpenAI client
-    const mockStreamFn: jest.MockedFunction<() => Promise<UnknownStream>> =
-      jest.fn();
-
-    mockStreamFn.mockResolvedValue(mockStream);
-
-    mockClient = {
-      responses: {
-        stream: mockStreamFn,
-      },
-    } as unknown as jest.Mocked<OpenAI>;
   });
 
   it('should convert chat messages to OpenAI format correctly', async () => {
@@ -50,8 +30,19 @@ describe('streamOpenAITokens', () => {
 
     const newMessage = 'How are you?';
 
-    // Mock empty stream for this test
-    mockStream[Symbol.asyncIterator] = async function* () {};
+    // Create mock stream that returns an async iterable
+    const mockStreamIterable = {
+      [Symbol.asyncIterator]: async function* () {
+        // Empty stream for this test
+      },
+    };
+
+    // Create mock client with responses.stream method
+    mockClient = {
+      responses: {
+        stream: jest.fn().mockReturnValue(mockStreamIterable),
+      },
+    } as unknown as jest.Mocked<OpenAI>;
 
     const generator = streamOpenAITokens(mockClient, history, newMessage);
 
@@ -68,6 +59,8 @@ describe('streamOpenAITokens', () => {
         { role: 'assistant', content: 'Hi there!' },
         { role: 'user', content: 'How are you?' },
       ],
+      instructions:
+        'You are a helpful assistant that always outputs responses in valid Markdown. Every response must be valid Markdown and render correctly. Prefer structured elements such as headings (##), bullet points, numbered lists, bold, italics, links, and fenced code blocks. Do not use plain text formatting unless Markdown cannot express it.',
     });
   });
 
@@ -75,13 +68,21 @@ describe('streamOpenAITokens', () => {
     const history: ChatMessage[] = [];
     const newMessage = 'Test message';
 
-    // Mock stream that yields text deltas
-    mockStream[Symbol.asyncIterator] = async function* () {
-      yield { type: 'response.output_text.delta', delta: 'Hello' };
-      yield { type: 'response.output_text.delta', delta: ' world' };
-      yield { type: 'response.output_text.delta', delta: '!' };
-      yield { type: 'response.completed' };
+    // Create mock stream that yields text deltas
+    const mockStreamIterable = {
+      [Symbol.asyncIterator]: async function* () {
+        yield { type: 'response.output_text.delta', delta: 'Hello' };
+        yield { type: 'response.output_text.delta', delta: ' world' };
+        yield { type: 'response.output_text.delta', delta: '!' };
+        yield { type: 'response.completed' };
+      },
     };
+
+    mockClient = {
+      responses: {
+        stream: jest.fn().mockReturnValue(mockStreamIterable),
+      },
+    } as unknown as jest.Mocked<OpenAI>;
 
     const generator = streamOpenAITokens(mockClient, history, newMessage);
     const results = [];
@@ -97,10 +98,18 @@ describe('streamOpenAITokens', () => {
     const history: ChatMessage[] = [];
     const newMessage = 'First message';
 
-    mockStream[Symbol.asyncIterator] = async function* () {
-      yield { type: 'response.output_text.delta', delta: 'Response' };
-      yield { type: 'response.completed' };
+    const mockStreamIterable = {
+      [Symbol.asyncIterator]: async function* () {
+        yield { type: 'response.output_text.delta', delta: 'Response' };
+        yield { type: 'response.completed' };
+      },
     };
+
+    mockClient = {
+      responses: {
+        stream: jest.fn().mockReturnValue(mockStreamIterable),
+      },
+    } as unknown as jest.Mocked<OpenAI>;
 
     const generator = streamOpenAITokens(mockClient, history, newMessage);
 
@@ -113,6 +122,8 @@ describe('streamOpenAITokens', () => {
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
       model: 'gpt-5-mini',
       input: [{ role: 'user', content: 'First message' }],
+      instructions:
+        'You are a helpful assistant that always outputs responses in valid Markdown. Every response must be valid Markdown and render correctly. Prefer structured elements such as headings (##), bullet points, numbered lists, bold, italics, links, and fenced code blocks. Do not use plain text formatting unless Markdown cannot express it.',
     });
   });
 
@@ -120,12 +131,20 @@ describe('streamOpenAITokens', () => {
     const history: ChatMessage[] = [];
     const newMessage = 'Test message';
 
-    mockStream[Symbol.asyncIterator] = async function* () {
-      yield {
-        type: 'response.failed',
-        response: { error: { message: 'API rate limit exceeded' } },
-      };
+    const mockStreamIterable = {
+      [Symbol.asyncIterator]: async function* () {
+        yield {
+          type: 'response.failed',
+          response: { error: { message: 'API rate limit exceeded' } },
+        };
+      },
     };
+
+    mockClient = {
+      responses: {
+        stream: jest.fn().mockReturnValue(mockStreamIterable),
+      },
+    } as unknown as jest.Mocked<OpenAI>;
 
     const generator = streamOpenAITokens(mockClient, history, newMessage);
 
@@ -140,11 +159,22 @@ describe('streamOpenAITokens', () => {
     const history: ChatMessage[] = [];
     const newMessage = 'Test message';
 
-    mockStream[Symbol.asyncIterator] = async function* () {
-      yield { type: 'response.output_text.delta', delta: 'First' };
-      yield { type: 'response.completed' };
-      yield { type: 'response.output_text.delta', delta: 'Should not appear' };
+    const mockStreamIterable = {
+      [Symbol.asyncIterator]: async function* () {
+        yield { type: 'response.output_text.delta', delta: 'First' };
+        yield { type: 'response.completed' };
+        yield {
+          type: 'response.output_text.delta',
+          delta: 'Should not appear',
+        };
+      },
     };
+
+    mockClient = {
+      responses: {
+        stream: jest.fn().mockReturnValue(mockStreamIterable),
+      },
+    } as unknown as jest.Mocked<OpenAI>;
 
     const generator = streamOpenAITokens(mockClient, history, newMessage);
     const results = [];
@@ -160,13 +190,21 @@ describe('streamOpenAITokens', () => {
     const history: ChatMessage[] = [];
     const newMessage = 'Test message';
 
-    mockStream[Symbol.asyncIterator] = async function* () {
-      yield { type: 'response.start' };
-      yield { type: 'response.output_text.delta', delta: 'Hello' };
-      yield { type: 'response.some_other_event', data: 'ignored' };
-      yield { type: 'response.output_text.delta', delta: ' world' };
-      yield { type: 'response.completed' };
+    const mockStreamIterable = {
+      [Symbol.asyncIterator]: async function* () {
+        yield { type: 'response.start' };
+        yield { type: 'response.output_text.delta', delta: 'Hello' };
+        yield { type: 'response.some_other_event', data: 'ignored' };
+        yield { type: 'response.output_text.delta', delta: ' world' };
+        yield { type: 'response.completed' };
+      },
     };
+
+    mockClient = {
+      responses: {
+        stream: jest.fn().mockReturnValue(mockStreamIterable),
+      },
+    } as unknown as jest.Mocked<OpenAI>;
 
     const generator = streamOpenAITokens(mockClient, history, newMessage);
     const results = [];
@@ -202,7 +240,17 @@ describe('streamOpenAITokens', () => {
 
     const newMessage = 'How can you help?';
 
-    mockStream[Symbol.asyncIterator] = async function* () {};
+    const mockStreamIterable = {
+      [Symbol.asyncIterator]: async function* () {
+        // Empty stream
+      },
+    };
+
+    mockClient = {
+      responses: {
+        stream: jest.fn().mockReturnValue(mockStreamIterable),
+      },
+    } as unknown as jest.Mocked<OpenAI>;
 
     const generator = streamOpenAITokens(mockClient, history, newMessage);
 
@@ -219,14 +267,24 @@ describe('streamOpenAITokens', () => {
         { role: 'assistant', content: 'Hello!' },
         { role: 'user', content: 'How can you help?' },
       ],
+      instructions:
+        'You are a helpful assistant that always outputs responses in valid Markdown. Every response must be valid Markdown and render correctly. Prefer structured elements such as headings (##), bullet points, numbered lists, bold, italics, links, and fenced code blocks. Do not use plain text formatting unless Markdown cannot express it.',
     });
   });
 
   it('should use the provided client', async () => {
-    mockStream[Symbol.asyncIterator] = async function* () {
-      yield { type: 'response.output_text.delta', delta: 'Test' };
-      yield { type: 'response.completed' };
+    const mockStreamIterable = {
+      [Symbol.asyncIterator]: async function* () {
+        yield { type: 'response.output_text.delta', delta: 'Test' };
+        yield { type: 'response.completed' };
+      },
     };
+
+    mockClient = {
+      responses: {
+        stream: jest.fn().mockReturnValue(mockStreamIterable),
+      },
+    } as unknown as jest.Mocked<OpenAI>;
 
     const generator = streamOpenAITokens(mockClient, [], 'Test message');
 
@@ -239,6 +297,8 @@ describe('streamOpenAITokens', () => {
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
       model: 'gpt-5-mini',
       input: [{ role: 'user', content: 'Test message' }],
+      instructions:
+        'You are a helpful assistant that always outputs responses in valid Markdown. Every response must be valid Markdown and render correctly. Prefer structured elements such as headings (##), bullet points, numbered lists, bold, italics, links, and fenced code blocks. Do not use plain text formatting unless Markdown cannot express it.',
     });
     expect(results).toEqual(['Test']);
   });
