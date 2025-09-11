@@ -40,7 +40,7 @@ export function SidebarThreads({ threads }: { threads: ThreadSummary[] }) {
         <li key={thread.id}>
           <Link
             href={getChatUrl(thread.id)}
-            className="menu w-full"
+            className="w-full"
             title={thread.name} // Tooltip shows full name for truncated text
           >
             {thread.name}
@@ -101,10 +101,12 @@ export async function SidebarContents() {
             1. Creates a new thread in the database
             2. Redirects user to the new thread's chat page
           */}
-      <form action={createNewThreadAction} className="shrink-0 p-2">
-        <button type="submit" className="btn btn-primary btn-soft w-full">
-          + New Chat
-        </button>
+      <form action={createNewThreadAction} className="shrink-0">
+        <ul className="menu w-full">
+          <li>
+            <button type="submit">+ New Chat</button>
+          </li>
+        </ul>
       </form>
 
       {/*
