@@ -4,9 +4,8 @@ import {
   createMockUser,
   createUniqueUserId,
 } from '@/__tests__/helpers/test-helpers';
+import { createAuthToken, verifyAuthToken } from '@/lib/auth/jwt';
 import type { User } from '@/lib/user/types';
-
-import { createAuthToken, verifyAuthToken } from '../jwt';
 
 // Mock environment variable for consistent testing
 const originalEnv = process.env.JWT_SECRET;

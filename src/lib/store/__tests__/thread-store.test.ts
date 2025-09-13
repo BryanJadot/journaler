@@ -4,14 +4,13 @@
 import { act, renderHook } from '@testing-library/react';
 
 import { ChatMessage } from '@/lib/chat/types';
-
 import {
   useNewMessages,
   useThread,
   useThreadId,
   useThreadMessages,
   useThreadName,
-} from '../thread-store';
+} from '@/lib/store/thread-store';
 
 // Mock message data for testing store operations
 // These represent typical user and assistant messages

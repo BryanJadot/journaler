@@ -1,7 +1,6 @@
+import { verifyHmacSignature as verifyHmacSignatureNode } from '@/lib/auth/get-user-from-header';
+import * as hmacSecretModule from '@/lib/auth/hmac-secret';
 import { createHmacSignature as createHmacSignatureEdge } from '@/middleware';
-
-import { verifyHmacSignature as verifyHmacSignatureNode } from '../get-user-from-header';
-import * as hmacSecretModule from '../hmac-secret';
 
 // Mock the secret getter
 const mockGetHmacSecret = jest.spyOn(hmacSecretModule, 'getHmacSecret');

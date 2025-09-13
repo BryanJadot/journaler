@@ -10,9 +10,12 @@ import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adap
 import { cookies } from 'next/headers';
 
 import { createMockUser } from '@/__tests__/helpers/test-helpers';
-
-import { clearAuthCookie, getAuthToken, setAuthCookie } from '../cookies';
-import { createAuthToken } from '../jwt';
+import {
+  clearAuthCookie,
+  getAuthToken,
+  setAuthCookie,
+} from '@/lib/auth/cookies';
+import { createAuthToken } from '@/lib/auth/jwt';
 
 // Mock Next.js cookies() function
 const mockCookieStore = {

@@ -49,6 +49,17 @@ const eslintConfig = [
       ],
       'import/newline-after-import': 'error',
       'import/no-duplicates': 'error',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['../*.{ts,tsx,js,jsx}', './*.{ts,tsx,js,jsx}'],
+              message: 'Use absolute imports instead of relative imports. Use @/ for src/ paths.',
+            },
+          ],
+        },
+      ],
     },
   },
 ];

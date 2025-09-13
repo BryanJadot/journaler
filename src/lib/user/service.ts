@@ -1,9 +1,10 @@
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 
-import { db } from '../db';
+import { db } from '@/lib/db';
+import { users } from '@/lib/db/schema';
+
 import type { CreateUserData, User } from './types';
-import { users } from '../db/schema';
 
 /**
  * Creates a new user in the database with a securely hashed password

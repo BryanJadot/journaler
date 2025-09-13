@@ -2,11 +2,10 @@ import { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 
 import { createUniqueUserId } from '@/__tests__/helpers/test-helpers';
+import { POST } from '@/app/api/chat/route';
 import * as getUserFromHeaderModule from '@/lib/auth/get-user-from-header';
 import { ChatMessage } from '@/lib/chat/types';
 import { StreamingResponse } from '@/lib/chat/types/streaming';
-
-import { POST } from '../route';
 
 jest.mock('@/lib/auth/get-user-from-header');
 

@@ -5,9 +5,8 @@ import { TextDecoder, TextEncoder } from 'util';
 
 import { act, renderHook } from '@testing-library/react';
 
+import { useStreamingChat } from '@/lib/chat/hooks/useStreamingChat';
 import { ChatMessage } from '@/lib/chat/types';
-
-import { useStreamingChat } from '../useStreamingChat';
 
 // Mock the thread store
 const mockAddUserMessage = jest.fn();

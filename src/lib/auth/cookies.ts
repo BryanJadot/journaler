@@ -1,8 +1,7 @@
 import { cookies } from 'next/headers';
 
+import { createAuthToken } from '@/lib/auth/jwt';
 import type { User } from '@/lib/user/types';
-
-import { createAuthToken } from './jwt';
 
 /** Name of the authentication cookie */
 const AUTH_COOKIE_NAME = 'auth-token';

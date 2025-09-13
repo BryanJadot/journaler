@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 
 import { headers } from 'next/headers';
 
-import { getHmacSecret } from './hmac-secret';
+import { getHmacSecret } from '@/lib/auth/hmac-secret';
 
 // Maximum age for timestamps (120 seconds) - prevents replay attacks
 const MAX_TIMESTAMP_AGE = 120;

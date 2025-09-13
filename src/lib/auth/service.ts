@@ -1,16 +1,16 @@
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 
-import { db } from '../db';
-import { users } from '../db/schema';
-import { createUser } from '../user/service';
+import { db } from '@/lib/db';
+import { users } from '@/lib/db/schema';
+import { createUser } from '@/lib/user/service';
 import type {
   CreateUserData,
   LoginCredentials,
   LoginResult,
   SignupResult,
   SignupError,
-} from '../user/types';
+} from '@/lib/user/types';
 
 /**
  * Checks if user signup is enabled via environment variable

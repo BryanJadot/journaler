@@ -8,7 +8,7 @@ import {
 } from '@jest/globals';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { validateRequestFormat } from '../request-validation';
+import { validateRequestFormat } from '@/lib/auth/request-validation';
 
 describe('validateRequestFormat', () => {
   beforeEach(() => {

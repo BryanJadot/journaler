@@ -1,9 +1,8 @@
 import { headers } from 'next/headers';
 
+import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
+import * as hmacSecretModule from '@/lib/auth/hmac-secret';
 import { createHmacSignature } from '@/middleware';
-
-import { getUserIdFromHeader } from '../get-user-from-header';
-import * as hmacSecretModule from '../hmac-secret';
 
 // Mock Next.js headers function and HMAC secret to control test scenarios
 jest.mock('next/headers');

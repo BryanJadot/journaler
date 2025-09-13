@@ -1,9 +1,9 @@
 import { createMockUser } from '@/__tests__/helpers/test-helpers';
+import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
+import { getChatUrl, getOrCreateChatUrl } from '@/lib/chat/redirect-helpers';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 
-import { DEFAULT_THREAD_NAME } from '../constants';
-import { getChatUrl, getOrCreateChatUrl } from '../redirect-helpers';
 import { createThread, getMostRecentThread } from '../service';
 
 // Mock the service functions
