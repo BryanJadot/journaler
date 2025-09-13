@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import * as cookiesModule from '@/lib/auth/cookies';
+import * as hmacSecretModule from '@/lib/auth/hmac-secret';
 import * as jwtModule from '@/lib/auth/jwt';
 import { middleware } from '@/middleware';
 
 // Mock auth dependencies to control authentication flow in tests
 jest.mock('@/lib/auth/cookies');
 jest.mock('@/lib/auth/jwt');
+jest.mock('@/lib/auth/hmac-secret');
 
 // Mock NextResponse methods to verify correct response generation
 const mockNext = jest.spyOn(NextResponse, 'next');
@@ -18,6 +20,9 @@ const mockGetAuthToken = cookiesModule.getAuthToken as jest.MockedFunction<
 >;
 const mockVerifyAuthToken = jwtModule.verifyAuthToken as jest.MockedFunction<
   typeof jwtModule.verifyAuthToken
+>;
+const mockGetHmacSecret = hmacSecretModule.getHmacSecret as jest.MockedFunction<
+  typeof hmacSecretModule.getHmacSecret
 >;
 
 /**
@@ -35,15 +40,28 @@ describe('middleware', () => {
     jest.clearAllMocks();
     mockNext.mockClear();
     mockRedirect.mockClear();
+
+    // Set up HMAC secret for tests
+    mockGetHmacSecret.mockReturnValue('test-secret-for-middleware-tests');
   });
 
   describe('header security', () => {
-    // This test verifies critical security behavior: preventing header injection attacks
-    it('should strip x-user-id header from incoming requests on public routes', async () => {
+    /**
+     * Critical security test: verifies prevention of header injection attacks.
+     *
+     * Attackers might try to inject malicious x-internal-* headers to bypass
+     * authentication or impersonate other users. This test ensures the middleware
+     * strips ALL x-internal-* headers from incoming requests before processing.
+     */
+    it('should strip x-internal-* headers from incoming requests on public routes', async () => {
       const request = new NextRequest('http://localhost/login', {
         headers: {
-          'x-user-id': 'malicious-user-id', // Potential security threat
-          'other-header': 'should-remain',
+          'x-internal-user': 'malicious-user-id', // Simulated attack: fake user ID
+          'x-internal-sig': 'malicious-signature', // Simulated attack: fake signature
+          'x-internal-ts': '123456789', // Simulated attack: fake timestamp
+          'x-internal-method': 'malicious-method', // Simulated attack: fake method
+          'x-internal-path': 'malicious-path', // Simulated attack: fake path
+          'other-header': 'should-remain', // Legitimate header should be preserved
         },
       });
 
@@ -62,13 +80,17 @@ describe('middleware', () => {
       const headers = callArgs!.request!.headers;
       expect(headers).toBeDefined();
 
-      // Critical security check: malicious header must be stripped
-      expect(headers!.get('x-user-id')).toBeNull();
-      // Ensure legitimate headers are preserved
+      // Critical security verification: all x-internal-* headers must be removed
+      expect(headers!.get('x-internal-user')).toBeNull();
+      expect(headers!.get('x-internal-sig')).toBeNull();
+      expect(headers!.get('x-internal-ts')).toBeNull();
+      expect(headers!.get('x-internal-method')).toBeNull();
+      expect(headers!.get('x-internal-path')).toBeNull();
+      // Verify legitimate headers remain untouched
       expect(headers!.get('other-header')).toBe('should-remain');
     });
 
-    it('should strip malicious x-user-id and set authenticated user ID on protected routes', async () => {
+    it('should strip malicious x-internal-* headers and set HMAC-signed headers on protected routes', async () => {
       const userId = 'authenticated-user-123';
       mockGetAuthToken.mockResolvedValue('valid-token');
       mockVerifyAuthToken.mockResolvedValue({
@@ -78,7 +100,8 @@ describe('middleware', () => {
 
       const request = new NextRequest('http://localhost/journal/chat/123', {
         headers: {
-          'x-user-id': 'malicious-user-id',
+          'x-internal-user': 'malicious-user-id',
+          'x-internal-sig': 'malicious-signature',
           authorization: 'Bearer valid-token',
         },
       });
@@ -98,8 +121,12 @@ describe('middleware', () => {
       const headers = callArgs!.request!.headers;
       expect(headers).toBeDefined();
 
-      // Verify the malicious header was replaced with the authenticated user ID
-      expect(headers!.get('x-user-id')).toBe(userId);
+      // Verify the authenticated user's internal headers are set with HMAC protection
+      expect(headers!.get('x-internal-user')).toBe(userId);
+      expect(headers!.get('x-internal-ts')).toBeDefined();
+      expect(headers!.get('x-internal-sig')).toBeDefined();
+      expect(headers!.get('x-internal-method')).toBe('GET');
+      expect(headers!.get('x-internal-path')).toBe('/journal/chat/123');
       // Verify other headers remain
       expect(headers!.get('authorization')).toBe('Bearer valid-token');
     });
@@ -185,8 +212,10 @@ describe('middleware', () => {
       const headers = callArgs!.request!.headers;
       expect(headers).toBeDefined();
 
-      // Verify the authenticated user ID was set in the header
-      expect(headers!.get('x-user-id')).toBe(userId);
+      // Verify the authenticated user's internal headers are set with HMAC protection
+      expect(headers!.get('x-internal-user')).toBe(userId);
+      expect(headers!.get('x-internal-ts')).toBeDefined();
+      expect(headers!.get('x-internal-sig')).toBeDefined();
     });
   });
 
@@ -246,8 +275,10 @@ describe('middleware', () => {
       const headers = callArgs!.request!.headers;
       expect(headers).toBeDefined();
 
-      // Verify the authenticated user ID was set in the header
-      expect(headers!.get('x-user-id')).toBe(userId);
+      // Verify the authenticated user's internal headers are set with HMAC protection
+      expect(headers!.get('x-internal-user')).toBe(userId);
+      expect(headers!.get('x-internal-ts')).toBeDefined();
+      expect(headers!.get('x-internal-sig')).toBeDefined();
     });
 
     it('should handle protected API routes', async () => {
@@ -280,8 +311,10 @@ describe('middleware', () => {
       const headers = callArgs!.request!.headers;
       expect(headers).toBeDefined();
 
-      // Verify the authenticated user ID was set in the header
-      expect(headers!.get('x-user-id')).toBe(userId);
+      // Verify the authenticated user's internal headers are set with HMAC protection
+      expect(headers!.get('x-internal-user')).toBe(userId);
+      expect(headers!.get('x-internal-ts')).toBeDefined();
+      expect(headers!.get('x-internal-sig')).toBeDefined();
     });
 
     it('should redirect unauthenticated API requests to login', async () => {
