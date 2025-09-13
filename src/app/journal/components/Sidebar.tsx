@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 
 import { createNewThreadAction } from '@/app/journal/chat/actions';
-import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
+import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { getChatUrl } from '@/lib/chat/redirect-helpers';
 import { getThreadSummariesForUser } from '@/lib/chat/service';
 import { ThreadSummary } from '@/lib/chat/types';
@@ -62,7 +62,7 @@ export function SidebarThreads({ threads }: { threads: ThreadSummary[] }) {
  * Main sidebar navigation component for the chat application.
  *
  * This async server component:
- * - Authenticates the current user (redirects to login if not authenticated)
+ * - Gets the authenticated user from headers (set by middleware)
  * - Fetches the user's chat thread summaries
  * - Renders a fixed sidebar with thread navigation
  *
@@ -81,13 +81,10 @@ export function SidebarThreads({ threads }: { threads: ThreadSummary[] }) {
  * <Suspense fallback={<SidebarSkeleton />}>
  *   <Sidebar />
  * </Suspense>
- *
- * @throws Will redirect to login page if user is not authenticated
  */
 export async function SidebarContents() {
-  // Authenticate user and retrieve their ID
-  // This will automatically redirect to login if user is not authenticated
-  const userId = await getCachedAuthedUserOrRedirect();
+  // Get authenticated user ID from headers (middleware handles auth)
+  const userId = await getUserIdFromHeader();
 
   // Fetch all thread summaries for the authenticated user
   // These are lightweight objects containing just ID and name, not full message history

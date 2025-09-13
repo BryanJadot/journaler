@@ -2,15 +2,13 @@ import { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 
 import { createUniqueUserId } from '@/__tests__/helpers/test-helpers';
-import * as cookiesModule from '@/lib/auth/cookies';
-import * as jwtModule from '@/lib/auth/jwt';
+import * as getUserFromHeaderModule from '@/lib/auth/get-user-from-header';
 import { ChatMessage } from '@/lib/chat/types';
 import { StreamingResponse } from '@/lib/chat/types/streaming';
 
 import { POST } from '../route';
 
-jest.mock('@/lib/auth/cookies');
-jest.mock('@/lib/auth/jwt');
+jest.mock('@/lib/auth/get-user-from-header');
 
 // Mock the chat service functions
 jest.mock('@/lib/chat/service', () => ({
@@ -28,12 +26,10 @@ jest.mock('../stream-openai-tokens', () => ({
   streamOpenAITokens: jest.fn(),
 }));
 
-const mockGetAuthToken = cookiesModule.getAuthToken as jest.MockedFunction<
-  typeof cookiesModule.getAuthToken
->;
-const mockVerifyAuthToken = jwtModule.verifyAuthToken as jest.MockedFunction<
-  typeof jwtModule.verifyAuthToken
->;
+const mockGetUserIdFromHeader =
+  getUserFromHeaderModule.getUserIdFromHeader as jest.MockedFunction<
+    typeof getUserFromHeaderModule.getUserIdFromHeader
+  >;
 
 // Get mock chat service functions
 const chatService = jest.requireMock('@/lib/chat/service');
@@ -66,11 +62,16 @@ const mockStreamOpenAITokens =
  */
 describe('/api/chat POST', () => {
   /**
-   * Helper function to create test requests with the new API format.
+   * Helper function to create test requests with the chat API format.
+   *
+   * @param {string} message - The user's message content
+   * @param {string} threadId - The thread identifier (UUID format)
+   * @param {ChatMessage[]} history - Previous conversation messages
+   * @returns {NextRequest} Properly formatted API request for testing
    */
   const createRequest = (
     message = 'Hello',
-    threadId = '550e8400-e29b-41d4-a716-446655440001',
+    threadId = '550e8400-e29b-41d4-a716-446655440001', // Default UUID for testing
     history: ChatMessage[] = []
   ) => {
     return new NextRequest('http://localhost/api/chat', {
@@ -82,6 +83,12 @@ describe('/api/chat POST', () => {
 
   /**
    * Helper function to parse JSON streaming response.
+   *
+   * The chat API streams responses as newline-delimited JSON objects.
+   * This helper parses the stream and returns all response objects in order.
+   *
+   * @param {Response} response - The streaming response from the API
+   * @returns {Promise<StreamingResponse[]>} Array of parsed response objects
    */
   const parseStreamingResponse = async (
     response: Response
@@ -93,14 +100,19 @@ describe('/api/chat POST', () => {
     const results: StreamingResponse[] = [];
     let buffer = '';
 
+    // Read the stream chunk by chunk
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
+      // Decode bytes to text and accumulate in buffer
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
 
+      // Split on newlines to get individual JSON objects
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+      // Parse each complete JSON line
       for (const line of lines) {
         if (line.trim()) {
           results.push(JSON.parse(line));
@@ -112,12 +124,14 @@ describe('/api/chat POST', () => {
   };
 
   beforeEach(() => {
+    // Reset all mocks to ensure test isolation
     jest.clearAllMocks();
 
-    // Mock successful thread ownership verification
+    // Mock successful thread ownership verification by default
+    // Individual tests can override this for error scenarios
     mockVerifyThreadOwnership.mockResolvedValue(true);
 
-    // Mock successful message saving
+    // Mock successful message saving with realistic return data
     mockSaveMessage.mockResolvedValue({
       id: 'message-id',
       threadId: '550e8400-e29b-41d4-a716-446655440001',
@@ -127,7 +141,8 @@ describe('/api/chat POST', () => {
       createdAt: new Date(),
     });
 
-    // Mock successful token generation
+    // Mock successful AI token generation with a simple streaming response
+    // Tests can override this to simulate different AI responses or errors
     mockStreamOpenAITokens.mockImplementation(async function* (
       _client: OpenAI,
       _history: ChatMessage[],
@@ -139,54 +154,24 @@ describe('/api/chat POST', () => {
     });
   });
 
-  it('should return 401 when no token is present', async () => {
-    mockGetAuthToken.mockResolvedValue(undefined);
+  it('should return 400 when user is not authenticated', async () => {
+    mockGetUserIdFromHeader.mockRejectedValue(
+      new Error('User ID not found in headers. Authentication required.')
+    );
 
     const request = createRequest();
     const response = await POST(request);
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(400);
     const body = await response.json();
-    expect(body).toEqual({ success: false, error: 'Authentication required' });
-  });
-
-  it('should return 401 when token is invalid', async () => {
-    mockGetAuthToken.mockResolvedValue('invalid-token');
-    mockVerifyAuthToken.mockResolvedValue({
-      success: false,
-      error: 'invalid-token',
+    expect(body).toEqual({
+      error: 'User ID not found in headers. Authentication required.',
     });
-
-    const request = createRequest();
-    const response = await POST(request);
-
-    expect(response.status).toBe(401);
-    const body = await response.json();
-    expect(body).toEqual({ success: false, error: 'Invalid or expired token' });
-  });
-
-  it('should return 401 when token has invalid payload', async () => {
-    mockGetAuthToken.mockResolvedValue('token-with-bad-payload');
-    mockVerifyAuthToken.mockResolvedValue({
-      success: false,
-      error: 'invalid-payload',
-    });
-
-    const request = createRequest();
-    const response = await POST(request);
-
-    expect(response.status).toBe(401);
-    const body = await response.json();
-    expect(body).toEqual({ success: false, error: 'Invalid or expired token' });
   });
 
   it('should return 400 when message content is missing', async () => {
     const userId = createUniqueUserId();
-    mockGetAuthToken.mockResolvedValue('valid-token');
-    mockVerifyAuthToken.mockResolvedValue({
-      success: true,
-      payload: { userId, username: 'testuser' },
-    });
+    mockGetUserIdFromHeader.mockResolvedValue(userId);
 
     const request = createRequest(''); // Empty message
     const response = await POST(request);
@@ -198,11 +183,7 @@ describe('/api/chat POST', () => {
 
   it('should return 400 when thread ID is missing', async () => {
     const userId = createUniqueUserId();
-    mockGetAuthToken.mockResolvedValue('valid-token');
-    mockVerifyAuthToken.mockResolvedValue({
-      success: true,
-      payload: { userId, username: 'testuser' },
-    });
+    mockGetUserIdFromHeader.mockResolvedValue(userId);
 
     const request = createRequest('Hello', ''); // Empty threadId
     const response = await POST(request);
@@ -214,11 +195,7 @@ describe('/api/chat POST', () => {
 
   it('should return 400 when user does not own thread', async () => {
     const userId = createUniqueUserId();
-    mockGetAuthToken.mockResolvedValue('valid-token');
-    mockVerifyAuthToken.mockResolvedValue({
-      success: true,
-      payload: { userId, username: 'testuser' },
-    });
+    mockGetUserIdFromHeader.mockResolvedValue(userId);
 
     // Mock thread ownership verification to return false
     mockVerifyThreadOwnership.mockResolvedValue(false);
@@ -236,11 +213,7 @@ describe('/api/chat POST', () => {
     const threadId = '550e8400-e29b-41d4-a716-446655440001';
     const message = 'Hello, how are you?';
 
-    mockGetAuthToken.mockResolvedValue('valid-token');
-    mockVerifyAuthToken.mockResolvedValue({
-      success: true,
-      payload: { userId, username: 'testuser' },
-    });
+    mockGetUserIdFromHeader.mockResolvedValue(userId);
 
     const request = createRequest(message, threadId);
     const response = await POST(request);
@@ -301,11 +274,7 @@ describe('/api/chat POST', () => {
       },
     ];
 
-    mockGetAuthToken.mockResolvedValue('valid-token');
-    mockVerifyAuthToken.mockResolvedValue({
-      success: true,
-      payload: { userId, username: 'testuser' },
-    });
+    mockGetUserIdFromHeader.mockResolvedValue(userId);
 
     const request = createRequest(message, threadId, history);
     await POST(request);
@@ -321,11 +290,7 @@ describe('/api/chat POST', () => {
     const userId = createUniqueUserId();
     const threadId = '550e8400-e29b-41d4-a716-446655440001';
 
-    mockGetAuthToken.mockResolvedValue('valid-token');
-    mockVerifyAuthToken.mockResolvedValue({
-      success: true,
-      payload: { userId, username: 'testuser' },
-    });
+    mockGetUserIdFromHeader.mockResolvedValue(userId);
 
     // Mock streamOpenAITokens to throw an error
     mockStreamOpenAITokens.mockImplementation(async function* () {
@@ -354,11 +319,7 @@ describe('/api/chat POST', () => {
     const userId = createUniqueUserId();
     const _threadId = '550e8400-e29b-41d4-a716-446655440001';
 
-    mockGetAuthToken.mockResolvedValue('valid-token');
-    mockVerifyAuthToken.mockResolvedValue({
-      success: true,
-      payload: { userId, username: 'testuser' },
-    });
+    mockGetUserIdFromHeader.mockResolvedValue(userId);
 
     // Mock streamOpenAITokens to throw a non-Error value
     mockStreamOpenAITokens.mockImplementation(async function* () {
@@ -378,11 +339,7 @@ describe('/api/chat POST', () => {
   it('should handle empty history array', async () => {
     const userId = createUniqueUserId();
 
-    mockGetAuthToken.mockResolvedValue('valid-token');
-    mockVerifyAuthToken.mockResolvedValue({
-      success: true,
-      payload: { userId, username: 'testuser' },
-    });
+    mockGetUserIdFromHeader.mockResolvedValue(userId);
 
     const request = createRequest(
       'Hello',

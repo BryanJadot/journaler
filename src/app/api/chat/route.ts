@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-import { requireAuth } from '@/lib/auth/require-auth';
+import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { saveMessage, verifyThreadOwnership } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
 import { StreamingResponse } from '@/lib/chat/types/streaming';
@@ -52,7 +52,7 @@ async function validateChatRequest(
  * Main chat endpoint that handles AI conversations with direct OpenAI streaming.
  *
  * This endpoint orchestrates the complete chat flow:
- * 1. Authentication via requireAuth wrapper
+ * 1. Authentication via middleware layer
  * 2. Request validation and thread ownership verification
  * 3. User message persistence to database
  * 4. AI response generation via direct OpenAI streaming
@@ -63,13 +63,14 @@ async function validateChatRequest(
  * - Server-sent events for real-time streaming
  * - Proper error handling with structured responses
  *
- * @param {object} params - Parameters from requireAuth wrapper
- * @param {NextRequest} params.request - The incoming HTTP request
- * @param {string} params.userId - The authenticated user's ID
+ * @param {NextRequest} request - The incoming HTTP request
  * @returns {Response} Streaming AI response or error response
  */
-export const POST = requireAuth(async ({ request, userId }) => {
+export async function POST(request: NextRequest) {
   try {
+    // Get user ID from headers set by middleware
+    const userId = await getUserIdFromHeader();
+
     // Parse the incoming JSON request body
     // Expected format: { message: string, threadId: string, history?: ChatMessage[] }
     const {
@@ -166,4 +167,4 @@ export const POST = requireAuth(async ({ request, userId }) => {
       { status: 400 }
     );
   }
-});
+}

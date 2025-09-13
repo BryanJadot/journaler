@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import JournalWrapper from '@/app/journal/components/JournalWrapper';
-import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
+import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { getThreadWithMessages } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
 
@@ -31,7 +31,7 @@ export default async function Page({
 }: {
   params: Promise<{ threadId: string }>;
 }) {
-  const userId = await getCachedAuthedUserOrRedirect();
+  const userId = await getUserIdFromHeader();
 
   // Extract threadId from dynamic route parameters
   const { threadId } = await params;

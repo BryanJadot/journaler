@@ -1,24 +1,18 @@
 import React from 'react';
 
-import { getCachedAuthedUserOrRedirect } from '@/lib/auth/get-authed-user';
-
 import { SidebarContents } from './Sidebar';
 
 /**
  * Journal wrapper component that provides the sidebar layout for chat pages.
  *
- * This component wraps page content with a sidebar navigation and handles
- * authentication verification. It's designed to be used directly by pages
- * that need the journal interface with sidebar navigation.
+ * This component wraps page content with a sidebar navigation.
+ * Authentication is handled at the middleware level.
  */
 export default async function JournalWrapper({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Verify user authentication before rendering layout
-  await getCachedAuthedUserOrRedirect();
-
   return (
     <div className="drawer drawer-open">
       <input id="my-drawer" type="checkbox" className="drawer-toggle" />
