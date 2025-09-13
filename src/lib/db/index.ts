@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import { Pool as PgPool } from 'pg';
 
-import * as schema from './schema';
+import * as schema from '@/lib/db/schema';
 
 // Use regular pg driver in test environment to avoid WebSocket issues
 const isTest = process.env.NODE_ENV === 'test';

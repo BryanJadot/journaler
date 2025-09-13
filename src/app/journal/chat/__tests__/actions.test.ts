@@ -1,11 +1,10 @@
 import { redirect } from 'next/navigation';
 
+import { createNewThreadAction } from '@/app/journal/chat/actions';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
 import { getChatUrl } from '@/lib/chat/redirect-helpers';
 import { createThread } from '@/lib/chat/service';
-
-import { createNewThreadAction } from '../actions';
 
 // Mock all external dependencies to isolate the server action logic
 jest.mock('next/navigation', () => ({

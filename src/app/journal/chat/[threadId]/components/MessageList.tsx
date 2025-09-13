@@ -1,6 +1,5 @@
+import { MessageBubble } from '@/app/journal/chat/[threadId]/components/MessageBubble';
 import { ChatMessage } from '@/lib/chat/types';
-
-import { MessageBubble } from './MessageBubble';
 
 /**
  * Props for the MessageList component.

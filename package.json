@@ -67,6 +67,7 @@
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.1",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5"
   }
 }

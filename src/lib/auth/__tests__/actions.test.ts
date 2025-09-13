@@ -3,11 +3,10 @@ import { redirect } from 'next/navigation';
 
 import { silenceConsoleErrors } from '@/__tests__/helpers/console-helpers';
 import { createMockUser } from '@/__tests__/helpers/test-helpers';
+import { loginAction, signupAction } from '@/lib/auth/actions';
 import { setAuthCookie } from '@/lib/auth/cookies';
 import { isSignupEnabled, loginUser, signupUser } from '@/lib/auth/service';
 import { getOrCreateChatUrl } from '@/lib/chat/redirect-helpers';
-
-import { loginAction, signupAction } from '../actions';
 
 // Mock dependencies
 jest.mock('@/lib/auth/service', () => ({

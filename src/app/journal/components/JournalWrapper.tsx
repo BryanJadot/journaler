@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { SidebarContents } from './Sidebar';
+import { SidebarContents } from '@/app/journal/components/Sidebar';
 
 /**
  * Journal wrapper component that provides the sidebar layout for chat pages.

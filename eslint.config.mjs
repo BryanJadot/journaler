@@ -22,6 +22,8 @@ const eslintConfig = [
     ],
   },
   {
+    files: ['**/*.{ts,tsx,js,jsx}'],
+    ignores: ['jest.*.ts', 'jest.*.js'],
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -54,7 +56,7 @@ const eslintConfig = [
         {
           patterns: [
             {
-              group: ['../*.{ts,tsx,js,jsx}', './*.{ts,tsx,js,jsx}'],
+              group: ['../*', './*', '!./*.css'],
               message: 'Use absolute imports instead of relative imports. Use @/ for src/ paths.',
             },
           ],

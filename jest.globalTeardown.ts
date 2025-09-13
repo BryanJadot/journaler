@@ -1,7 +1,16 @@
+// Register TypeScript paths before any imports
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+require('tsconfig-paths').register({
+  baseUrl: './',
+  paths: {
+    '@/*': ['./src/*'],
+  },
+});
+
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
-import { pool } from './src/lib/db';
+import { pool } from '@/lib/db';
 
 const execAsync = promisify(exec);
 

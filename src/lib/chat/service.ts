@@ -1,9 +1,8 @@
 import { eq, desc } from 'drizzle-orm';
 
+import type { Role, OutputType, ThreadSummary } from '@/lib/chat/types';
 import { db } from '@/lib/db';
 import { threads, messages } from '@/lib/db/schema';
-
-import type { Role, OutputType, ThreadSummary } from './types';
 
 /**
  * Creates a new chat thread for a user.

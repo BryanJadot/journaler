@@ -2,9 +2,6 @@ import { describe, it, expect, beforeEach } from '@jest/globals';
 import { eq } from 'drizzle-orm';
 
 import { createMockUser } from '@/__tests__/helpers/test-helpers';
-import { db } from '@/lib/db';
-import { users, threads, messages } from '@/lib/db/schema';
-
 import {
   createThread,
   getThreadsByUser,
@@ -13,8 +10,10 @@ import {
   getThreadSummariesForUser,
   saveMessage,
   verifyThreadOwnership,
-} from '../service';
-import type { Role, OutputType } from '../types';
+} from '@/lib/chat/service';
+import type { Role, OutputType } from '@/lib/chat/types';
+import { db } from '@/lib/db';
+import { users, threads, messages } from '@/lib/db/schema';
 
 describe('Chat Service', () => {
   let testUserId: string;

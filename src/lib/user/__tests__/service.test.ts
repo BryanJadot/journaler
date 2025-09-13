@@ -3,8 +3,7 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-
-import { createUser, getUserById } from '../service';
+import { createUser, getUserById } from '@/lib/user/service';
 
 const randomUsername = () =>
   `testuser-${Math.random().toString(36).substring(7)}`;

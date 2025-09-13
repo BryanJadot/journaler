@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import OpenAI from 'openai';
 
+import { streamOpenAITokens } from '@/app/api/chat/stream-openai-tokens';
 import { ChatMessage } from '@/lib/chat/types';
-
-import { streamOpenAITokens } from '../stream-openai-tokens';
 
 describe('streamOpenAITokens', () => {
   let mockClient: jest.Mocked<OpenAI>;

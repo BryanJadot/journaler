@@ -1,6 +1,5 @@
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
-
-import { createThread, getMostRecentThread } from './service';
+import { createThread, getMostRecentThread } from '@/lib/chat/service';
 
 /**
  * Builds a URL for a specific chat thread

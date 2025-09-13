@@ -9,11 +9,10 @@ import {
   useDeferredValue,
 } from 'react';
 
+import ChatInputForm from '@/app/journal/chat/[threadId]/components/ChatInputForm';
+import MessageList from '@/app/journal/chat/[threadId]/components/MessageList';
 import { ChatMessage } from '@/lib/chat/types';
 import { useNewMessages } from '@/lib/store/thread-store';
-
-import ChatInputForm from './ChatInputForm';
-import MessageList from './MessageList';
 
 interface ChatContainerProps {
   children?: ReactNode;

@@ -1,9 +1,8 @@
 import { createMockUserWithPassword } from '@/__tests__/helpers/test-helpers';
+import { isSignupEnabled, loginUser, signupUser } from '@/lib/auth/service';
 import { createUser } from '@/lib/user/service';
 import * as userServiceModule from '@/lib/user/service';
 import { User, LoginError, SignupError } from '@/lib/user/types';
-
-import { isSignupEnabled, loginUser, signupUser } from '../service';
 
 const randomUsername = () =>
   `testuser-${Math.random().toString(36).substring(7)}`;

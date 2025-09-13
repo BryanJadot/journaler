@@ -1,13 +1,12 @@
 import { notFound } from 'next/navigation';
 
+import ChatContainer from '@/app/journal/chat/[threadId]/components/ChatContainer';
+import MessageList from '@/app/journal/chat/[threadId]/components/MessageList';
+import ThreadInitializer from '@/app/journal/chat/[threadId]/components/ThreadInitializer';
 import JournalWrapper from '@/app/journal/components/JournalWrapper';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { getThreadWithMessages } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
-
-import ChatContainer from './components/ChatContainer';
-import MessageList from './components/MessageList';
-import ThreadInitializer from './components/ThreadInitializer';
 
 /**
  * Dynamic chat thread page component that renders a specific chat conversation.

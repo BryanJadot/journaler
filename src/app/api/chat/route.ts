@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { streamOpenAITokens } from '@/app/api/chat/stream-openai-tokens';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { saveMessage, verifyThreadOwnership } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
 import { StreamingResponse } from '@/lib/chat/types/streaming';
 import { openaiClient } from '@/lib/openai/client';
-
-import { streamOpenAITokens } from './stream-openai-tokens';
 
 // Allow up to 2 minutes for AI generation
 export const maxDuration = 120;

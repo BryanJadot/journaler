@@ -3,8 +3,7 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-
-import type { CreateUserData, User } from './types';
+import type { CreateUserData, User } from '@/lib/user/types';
 
 /**
  * Creates a new user in the database with a securely hashed password
