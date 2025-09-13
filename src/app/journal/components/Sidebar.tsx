@@ -18,7 +18,7 @@ export function SidebarThreadsSkeleton() {
     <>
       {/* Render 3 skeleton items as loading placeholders */}
       {Array.from({ length: 10 }, (_, i) => (
-        <div key={i} className="skeleton h-6 bg-base-300"></div>
+        <div key={i} className="mx-2 skeleton h-6 bg-base-300"></div>
       ))}
     </>
   );
@@ -113,7 +113,7 @@ export async function SidebarContents() {
             Thread list with Suspense boundary for progressive rendering
             Shows skeleton loader while threads are being fetched
           */}
-      <div className="border-t border-base-300 flex flex-col flex-1 overflow-y-auto">
+      <div className="border-t border-base-300 flex flex-col flex-1 overflow-y-auto gap-2">
         <Suspense fallback={<SidebarThreadsSkeleton />}>
           <SidebarThreads threads={threads} />
         </Suspense>
