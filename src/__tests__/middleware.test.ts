@@ -283,5 +283,37 @@ describe('middleware', () => {
       // Verify the authenticated user ID was set in the header
       expect(headers!.get('x-user-id')).toBe(userId);
     });
+
+    it('should redirect unauthenticated API requests to login', async () => {
+      mockGetAuthToken.mockResolvedValue(undefined);
+
+      const request = new NextRequest('http://localhost/api/chat', {
+        method: 'POST',
+      });
+
+      const response = await middleware(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toContain('/login');
+      expect(mockGetAuthToken).toHaveBeenCalled();
+    });
+
+    it('should redirect API requests with invalid tokens to login', async () => {
+      mockGetAuthToken.mockResolvedValue('invalid-token');
+      mockVerifyAuthToken.mockResolvedValue({
+        success: false,
+        error: 'invalid-token',
+      });
+
+      const request = new NextRequest('http://localhost/api/users/profile', {
+        method: 'GET',
+      });
+
+      const response = await middleware(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toContain('/login');
+      expect(mockVerifyAuthToken).toHaveBeenCalled();
+    });
   });
 });
