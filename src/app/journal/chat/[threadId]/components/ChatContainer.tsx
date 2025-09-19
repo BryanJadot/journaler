@@ -21,21 +21,21 @@ interface ChatContainerProps {
 }
 
 /**
- * Hook that provides auto-scrolling functionality for chat messages.
- * Automatically scrolls to bottom when new messages arrive, but only if user is already near the bottom.
+ * Hook that provides intelligent auto-scrolling functionality for chat messages.
+ * Uses IntersectionObserver with a sentinel element to detect when user is near bottom.
+ * Automatically follows new messages only when user is already viewing recent content.
  *
  * @param newMessages - Array of chat messages to monitor for changes
- * @param containerRef - React ref to the scrollable container element
- * @returns Object containing scrollToBottom function for manual scrolling
+ * @returns Object with scroll controls and refs for container and sentinel element
  */
-const useAutoScroll = (
-  newMessages: ChatMessage[],
-  containerRef: RefObject<HTMLDivElement | null>
-) => {
-  // Intersection observer to detect when user is at bottom of chat
+const useAutoScroll = (newMessages: ChatMessage[]) => {
+  // Ref to the scrollable container for programmatic scroll control
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Sentinel element tracked by IntersectionObserver to detect bottom visibility
   const { ref: sentinelRef, inView } = useInView();
 
-  // State to track whether auto-scroll should be active
+  // Following state: true when auto-scroll is enabled, false when user reads history
   const [shouldFollow, setShouldFollow] = useState(inView);
 
   // Store previous scroll position to detect scroll direction
@@ -44,9 +44,9 @@ const useAutoScroll = (
   );
 
   /**
-   * Handles scroll events to determine whether to enable/disable auto-scroll.
-   * Disables auto-scroll when user scrolls up manually.
-   * Re-enables when user scrolls back to bottom area.
+   * Handles manual scroll events to intelligently manage following behavior.
+   * Detects upward scrolling (user reading history) and disables auto-follow.
+   * Re-enables following when sentinel becomes visible again (user returns to bottom).
    */
   const onContainerScroll = useCallback(() => {
     if (
@@ -54,10 +54,10 @@ const useAutoScroll = (
       containerRef.current?.scrollTop &&
       previousScrollTop.current > containerRef.current.scrollTop
     ) {
-      // User scrolled up - disable auto-follow to let them read
+      // User scrolled up - disable auto-follow to let them read history
       setShouldFollow(false);
     } else if (inView) {
-      // User is near bottom and not scrolling up - re-enable auto-follow
+      // Sentinel visible and not scrolling up - re-enable auto-follow
       setShouldFollow(true);
     }
 
@@ -113,6 +113,7 @@ const useAutoScroll = (
     scrollToBottom: scrollToBottomDelayed,
     onContainerScroll,
     sentinelRef,
+    containerRef,
   };
 };
 
@@ -124,17 +125,12 @@ const useAutoScroll = (
  * @returns Chat container with message list, input form, and auto-scroll behavior
  */
 export default function ChatContainer({ children }: ChatContainerProps) {
-  // Ref to the scrollable container for programmatic scroll control
-  const containerRef = useRef<HTMLDivElement>(null);
-
   // Get live messages from the client-side store
   const newMessages = useNewMessages();
 
   // Set up auto-scroll behavior with smart follow detection
-  const { scrollToBottom, onContainerScroll, sentinelRef } = useAutoScroll(
-    newMessages,
-    containerRef
-  );
+  const { scrollToBottom, onContainerScroll, sentinelRef, containerRef } =
+    useAutoScroll(newMessages);
 
   return (
     <div className="flex flex-col h-screen w-full bg-base-100">
