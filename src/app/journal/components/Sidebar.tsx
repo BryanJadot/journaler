@@ -1,17 +1,15 @@
-import clsx from 'clsx';
-import Link from 'next/link';
 import { Suspense } from 'react';
 
 import { createNewThreadAction } from '@/app/journal/chat/actions';
+import { SidebarThreadsList } from '@/app/journal/components/SidebarThreadsList';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
-import { getChatUrl } from '@/lib/chat/redirect-helpers';
-import { getThreadSummariesForUser } from '@/lib/chat/service';
+import { getCachedThreadSummaries } from '@/lib/chat/service';
 
 /**
- * Loading skeleton component displayed while the sidebar fetches thread data.
- * Renders placeholder elements to prevent layout shift during async data loading.
+ * Loading skeleton component for sidebar thread list.
  *
- * @returns Three skeleton loading bars simulating thread items
+ * Displays placeholder skeleton bars while thread data is being fetched
+ * to prevent layout shift during async loading.
  */
 export function SidebarThreadsSkeleton() {
   return (
@@ -25,81 +23,35 @@ export function SidebarThreadsSkeleton() {
 }
 
 /**
- * Renders the list of chat thread navigation links.
- * Handles both populated and empty states for the thread list.
+ * Server component that fetches and provides thread data to the client component.
  *
- * @param props - Component props
- * @param props.threads - Array of thread summaries to display
- * @returns List of clickable thread links or empty state message
+ * Handles authentication via headers and fetches cached thread summaries
+ * for the authenticated user. Renders the client-side SidebarThreadsList
+ * with the fetched data.
  */
-export async function SidebarThreads({
-  currentThreadId,
-}: {
-  currentThreadId: string;
-}) {
+export async function SidebarThreadsListServer() {
   // Get authenticated user ID from headers (middleware handles auth)
   const userId = await getUserIdFromHeader();
 
-  // Fetch all thread summaries for the authenticated user
+  // Fetch cached thread summaries for the authenticated user
   // These are lightweight objects containing just ID and name, not full message history
-  const threads = await getThreadSummariesForUser(userId);
+  const threads = await getCachedThreadSummaries(userId);
 
-  return (
-    <ul className="menu w-full">
-      {/* Map through threads and create navigation links */}
-      {threads.map((thread) => (
-        <li key={thread.id}>
-          <Link
-            href={getChatUrl(thread.id)}
-            className={clsx('w-full', {
-              'menu-active': thread.id === currentThreadId,
-            })}
-            title={thread.name} // Tooltip shows full name for truncated text
-          >
-            {thread.name}
-          </Link>
-        </li>
-      ))}
-
-      {/* Display helpful message when user has no chat threads */}
-      {threads.length === 0 && (
-        <div className="px-3 py-2 text-sm text-neutral italic">
-          No threads yet
-        </div>
-      )}
-    </ul>
-  );
+  return <SidebarThreadsList threads={threads} />;
 }
 
 /**
- * Main sidebar navigation component for the chat application.
+ * Complete sidebar component with thread navigation and new chat functionality.
  *
- * This async server component:
- * - Gets the authenticated user from headers (set by middleware)
- * - Fetches the user's chat thread summaries
- * - Renders a fixed sidebar with thread navigation
+ * Renders a fixed-width sidebar containing:
+ * - "New Chat" button that creates a new thread via server action
+ * - Scrollable list of user's existing chat threads
+ * - Loading skeleton during thread data fetching
  *
- * The sidebar features:
- * - Fixed 256px width (w-64 in Tailwind)
- * - Sticky header with title
- * - "New Chat" button for creating threads via server action
- * - Scrollable list of existing threads
- * - Responsive hover states and transitions
- *
- * @async
- * @returns The complete sidebar component
- *
- * @example
- * // Usage in a layout component
- * <Suspense fallback={<SidebarSkeleton />}>
- *   <Sidebar />
- * </Suspense>
+ * The sidebar uses server-side rendering for thread data and includes
+ * proper Suspense boundaries for progressive loading.
  */
-export function SidebarContents({
-  currentThreadId,
-}: {
-  currentThreadId: string;
-}) {
+export function SidebarContents() {
   return (
     <div className="flex flex-col w-80 h-screen bg-base-200 border-r border-base-300">
       {/*
@@ -122,7 +74,7 @@ export function SidebarContents({
           */}
       <div className="border-t border-base-300 flex flex-col flex-1 overflow-y-auto gap-2">
         <Suspense fallback={<SidebarThreadsSkeleton />}>
-          <SidebarThreads currentThreadId={currentThreadId} />
+          <SidebarThreadsListServer />
         </Suspense>
       </div>
     </div>

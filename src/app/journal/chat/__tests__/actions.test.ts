@@ -1,18 +1,24 @@
+import { revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { createNewThreadAction } from '@/app/journal/chat/actions';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
-import { getChatUrl } from '@/lib/chat/redirect-helpers';
-import { createThread } from '@/lib/chat/service';
+import { createThread, getUserThreadsCacheTag } from '@/lib/chat/service';
+import { getChatUrl } from '@/lib/chat/url-helpers';
 
 // Mock all external dependencies to isolate the server action logic
 jest.mock('next/navigation', () => ({
   redirect: jest.fn(),
 }));
 
+jest.mock('next/cache', () => ({
+  revalidateTag: jest.fn(),
+}));
+
 jest.mock('@/lib/chat/service', () => ({
   createThread: jest.fn(),
+  getUserThreadsCacheTag: jest.fn(),
 }));
 
 jest.mock('@/lib/auth/get-user-from-header', () => ({
@@ -38,8 +44,10 @@ describe('createNewThreadAction', () => {
 
   it('should create a new thread and redirect to it', async () => {
     // Setup mocks
+    const mockCacheTag = `user-threads:${mockUserId}`;
     (getUserIdFromHeader as jest.Mock).mockResolvedValue(mockUserId);
     (createThread as jest.Mock).mockResolvedValue({ id: mockThreadId });
+    (getUserThreadsCacheTag as jest.Mock).mockReturnValue(mockCacheTag);
 
     // Execute the action
     await createNewThreadAction();
@@ -49,6 +57,10 @@ describe('createNewThreadAction', () => {
 
     // Verify thread was created with correct parameters
     expect(createThread).toHaveBeenCalledWith(mockUserId, DEFAULT_THREAD_NAME);
+
+    // Verify cache was invalidated for the user
+    expect(getUserThreadsCacheTag).toHaveBeenCalledWith(mockUserId);
+    expect(revalidateTag).toHaveBeenCalledWith(mockCacheTag);
 
     // Verify redirect to the new thread
     expect(redirect).toHaveBeenCalledWith(getChatUrl(mockThreadId));

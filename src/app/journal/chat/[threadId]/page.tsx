@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import ChatContainer from '@/app/journal/chat/[threadId]/components/ChatContainer';
 import MessageList from '@/app/journal/chat/[threadId]/components/MessageList';
 import ThreadInitializer from '@/app/journal/chat/[threadId]/components/ThreadInitializer';
-import JournalWrapper from '@/app/journal/components/JournalWrapper';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { getThreadWithMessages } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
@@ -56,7 +55,7 @@ export default async function Page({
   }));
 
   return (
-    <JournalWrapper currentThreadId={threadId}>
+    <>
       {/* Initialize thread store with server data */}
       <ThreadInitializer
         threadId={threadId}
@@ -69,6 +68,6 @@ export default async function Page({
           <MessageList messages={initialMessages} />
         )}
       </ChatContainer>
-    </JournalWrapper>
+    </>
   );
 }

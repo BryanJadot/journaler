@@ -1,25 +1,22 @@
 'use server';
 
+import { revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
-import { getChatUrl } from '@/lib/chat/redirect-helpers';
-import { createThread } from '@/lib/chat/service';
+import { createThread, getUserThreadsCacheTag } from '@/lib/chat/service';
+import { getChatUrl } from '@/lib/chat/url-helpers';
 
 /**
- * Server action to create a new chat thread and redirect to it.
+ * Server action that creates a new chat thread and redirects to it.
  *
- * This action is triggered by the sidebar's "New Chat" button and implements:
- * 1. Authentication verification via middleware-set headers
- * 2. Thread creation in the database with default name
- * 3. Immediate redirect to the new thread's chat page
- *
- * The redirect ensures users start interacting with the new thread immediately,
- * providing a smooth UX flow from clicking "New Chat" to typing their first message.
+ * Triggered by the sidebar's "New Chat" button. Creates a new thread
+ * with default name, invalidates the user's thread cache for immediate
+ * sidebar updates, and redirects to the new thread's chat page.
  *
  * @throws If user is not authenticated or thread creation fails
- * @returns Always redirects, never returns
+ * @returns Always redirects, never returns a value
  *
  * @example
  * // In a form component
@@ -33,6 +30,9 @@ export async function createNewThreadAction() {
 
   // Create new thread with default name - user can rename it later
   const newThread = await createThread(userId, DEFAULT_THREAD_NAME);
+
+  // Invalidate the user's thread cache so the sidebar updates
+  revalidateTag(getUserThreadsCacheTag(userId));
 
   // Redirect immediately to the new thread's chat page
   redirect(getChatUrl(newThread.id));

@@ -1,4 +1,5 @@
 import { eq, desc } from 'drizzle-orm';
+import { unstable_cache } from 'next/cache';
 
 import type { Role, OutputType, ThreadSummary } from '@/lib/chat/types';
 import { db } from '@/lib/db';
@@ -105,6 +106,39 @@ export async function getThreadSummariesForUser(
       updatedAt: true, // For sorting and timestamp display
     },
   });
+}
+
+/**
+ * Helper function to generate consistent cache tags for user thread summaries.
+ * Used for both caching and cache invalidation.
+ *
+ * @param userId - The user ID to generate a cache tag for
+ * @returns Cache tag string for the user's threads
+ */
+export function getUserThreadsCacheTag(userId: string): string {
+  return `user-threads:${userId}`;
+}
+
+/**
+ * Cached version of getThreadSummariesForUser with user-specific cache invalidation.
+ *
+ * Uses Next.js unstable_cache to cache thread summaries per user.
+ * Cache can be invalidated using the user-specific tag from getUserThreadsCacheTag.
+ *
+ * @param userId - The unique identifier of the user whose threads to retrieve
+ * @returns Cached array of thread summaries
+ */
+export function getCachedThreadSummaries(userId: string) {
+  const cacheTag = getUserThreadsCacheTag(userId);
+  return unstable_cache(
+    async () => {
+      return getThreadSummariesForUser(userId);
+    },
+    [cacheTag], // User-specific cache key
+    {
+      tags: [cacheTag], // User-specific tag for cache invalidation
+    }
+  )();
 }
 
 /**

@@ -3,17 +3,20 @@ import React from 'react';
 import { SidebarContents } from '@/app/journal/components/Sidebar';
 
 /**
- * Journal wrapper component that provides the sidebar layout for chat pages.
+ * Journal layout component that provides persistent sidebar navigation.
  *
- * This component wraps page content with a sidebar navigation.
- * Authentication is handled at the middleware level.
+ * This layout wraps all journal routes (/journal/*) with a fixed sidebar
+ * containing thread navigation and a "New Chat" button. The sidebar remains
+ * visible and accessible across all journal pages for consistent navigation.
+ *
+ * Uses DaisyUI's drawer component for responsive sidebar behavior.
+ *
+ * @param children - The page content to render in the main area
  */
-export default async function JournalWrapper({
+export default function JournalLayout({
   children,
-  currentThreadId,
 }: {
   children: React.ReactNode;
-  currentThreadId: string;
 }) {
   return (
     <div className="drawer drawer-open">
@@ -24,7 +27,7 @@ export default async function JournalWrapper({
 
       {/* Left sidebar with thread navigation */}
       <nav className="drawer-side">
-        <SidebarContents currentThreadId={currentThreadId} />
+        <SidebarContents />
       </nav>
     </div>
   );

@@ -1,22 +1,13 @@
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
 import { createThread, getMostRecentThread } from '@/lib/chat/service';
+import { getChatUrl } from '@/lib/chat/url-helpers';
 
 /**
- * Builds a URL for a specific chat thread
- * @param threadId - The thread ID (must not be empty)
- * @returns The chat thread URL
- * @throws {Error} If threadId is empty or whitespace-only
- */
-export function getChatUrl(threadId: string): string {
-  if (!threadId || !threadId.trim()) {
-    throw new Error('Thread ID cannot be empty');
-  }
-  return `/journal/chat/${threadId}`;
-}
-
-/**
- * Gets the appropriate chat URL for a user, either their most recent thread
- * or a newly created one if they have no threads.
+ * Server-side helper to get or create a chat URL for user redirection.
+ *
+ * Returns the user's most recent thread URL, or creates a new thread
+ * with default name if the user has no existing threads. Used for
+ * redirecting users to an appropriate chat page.
  *
  * @param userId - The authenticated user's ID
  * @returns The chat thread URL to redirect to

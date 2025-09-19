@@ -1,7 +1,8 @@
 import { createMockUser } from '@/__tests__/helpers/test-helpers';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
-import { getChatUrl, getOrCreateChatUrl } from '@/lib/chat/redirect-helpers';
+import { getOrCreateChatUrl } from '@/lib/chat/redirect-helpers';
 import { createThread, getMostRecentThread } from '@/lib/chat/service';
+import { getChatUrl } from '@/lib/chat/url-helpers';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 
