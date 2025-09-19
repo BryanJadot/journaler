@@ -67,7 +67,7 @@ describe('Cookie Management Functions', () => {
           httpOnly: true,
           secure: false, // development mode
           sameSite: 'strict',
-          maxAge: 60 * 60 * 24, // 24 hours
+          maxAge: 60 * 60 * 24 * 7, // 7 days
           path: '/',
         }
       );
@@ -96,7 +96,7 @@ describe('Cookie Management Functions', () => {
           httpOnly: true,
           secure: true, // production mode
           sameSite: 'strict',
-          maxAge: 60 * 60 * 24,
+          maxAge: 60 * 60 * 24 * 7,
           path: '/',
         }
       );
@@ -169,7 +169,7 @@ describe('Cookie Management Functions', () => {
           httpOnly: true,
           secure: false, // not production
           sameSite: 'strict',
-          maxAge: 60 * 60 * 24,
+          maxAge: 60 * 60 * 24 * 7,
           path: '/',
         }
       );
@@ -336,13 +336,13 @@ describe('Cookie Management Functions', () => {
       expect(options.path).toBe('/');
     });
 
-    it('should set maxAge to 24 hours (86400 seconds)', async () => {
+    it('should set maxAge to 7 days (604800 seconds)', async () => {
       const mockUser = createMockUser();
       await setAuthCookie(mockUser);
 
       const callArgs = mockCookieStore.set.mock.calls[0];
       const options = callArgs[2] as { maxAge: number };
-      expect(options.maxAge).toBe(60 * 60 * 24);
+      expect(options.maxAge).toBe(60 * 60 * 24 * 7);
     });
 
     it('should use correct cookie name consistently', async () => {

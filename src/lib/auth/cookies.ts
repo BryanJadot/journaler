@@ -22,7 +22,7 @@ function getAuthCookieOptions() {
     httpOnly: true, // Mitigate XSS risks
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     sameSite: 'strict' as const, // Prevent CSRF attacks
-    maxAge: 60 * 60 * 24, // 24 hours
+    maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/', // Available site-wide
   };
 }
