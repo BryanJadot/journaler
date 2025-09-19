@@ -5,7 +5,6 @@ import { createNewThreadAction } from '@/app/journal/chat/actions';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { getChatUrl } from '@/lib/chat/redirect-helpers';
 import { getThreadSummariesForUser } from '@/lib/chat/service';
-import { ThreadSummary } from '@/lib/chat/types';
 
 /**
  * Loading skeleton component displayed while the sidebar fetches thread data.
@@ -32,7 +31,14 @@ export function SidebarThreadsSkeleton() {
  * @param props.threads - Array of thread summaries to display
  * @returns List of clickable thread links or empty state message
  */
-export function SidebarThreads({ threads }: { threads: ThreadSummary[] }) {
+export async function SidebarThreads() {
+  // Get authenticated user ID from headers (middleware handles auth)
+  const userId = await getUserIdFromHeader();
+
+  // Fetch all thread summaries for the authenticated user
+  // These are lightweight objects containing just ID and name, not full message history
+  const threads = await getThreadSummariesForUser(userId);
+
   return (
     <ul className="menu w-full">
       {/* Map through threads and create navigation links */}
@@ -82,14 +88,7 @@ export function SidebarThreads({ threads }: { threads: ThreadSummary[] }) {
  *   <Sidebar />
  * </Suspense>
  */
-export async function SidebarContents() {
-  // Get authenticated user ID from headers (middleware handles auth)
-  const userId = await getUserIdFromHeader();
-
-  // Fetch all thread summaries for the authenticated user
-  // These are lightweight objects containing just ID and name, not full message history
-  const threads = await getThreadSummariesForUser(userId);
-
+export function SidebarContents() {
   return (
     <div className="flex flex-col w-80 h-screen bg-base-200 border-r border-base-300">
       {/*
@@ -112,7 +111,7 @@ export async function SidebarContents() {
           */}
       <div className="border-t border-base-300 flex flex-col flex-1 overflow-y-auto gap-2">
         <Suspense fallback={<SidebarThreadsSkeleton />}>
-          <SidebarThreads threads={threads} />
+          <SidebarThreads />
         </Suspense>
       </div>
     </div>
