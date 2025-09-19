@@ -65,7 +65,7 @@ const useAutoScroll = (newMessages: ChatMessage[]) => {
     if (containerRef.current !== null) {
       previousScrollTop.current = containerRef.current.scrollTop;
     }
-  }, [containerRef, inView]);
+  }, [inView]);
 
   /**
    * Smoothly scrolls the container to the bottom (newest messages).
@@ -77,7 +77,7 @@ const useAutoScroll = (newMessages: ChatMessage[]) => {
       top: containerRef.current.scrollHeight,
       behavior: 'smooth',
     });
-  }, [containerRef]);
+  }, []);
 
   /**
    * Scrolls to bottom after waiting for DOM updates to complete.
@@ -108,6 +108,13 @@ const useAutoScroll = (newMessages: ChatMessage[]) => {
       scrollToBottom();
     }
   }, [shouldFollow, newestMessageLength, scrollToBottom]);
+
+  // Scroll to bottom when container ref changes (like on first load)
+  useEffect(() => {
+    if (containerRef.current) {
+      scrollToBottom();
+    }
+  }, [scrollToBottom]);
 
   return {
     scrollToBottom: scrollToBottomDelayed,
