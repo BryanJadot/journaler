@@ -4,8 +4,8 @@ import type { User } from '@/lib/user/types';
 
 /**
  * Gets and validates the JWT secret from environment variables
- * @returns {Uint8Array} Encoded JWT secret
- * @throws {Error} If JWT_SECRET is missing or empty
+ * @returns Encoded JWT secret
+ * @throws If JWT_SECRET is missing or empty
  */
 function getJwtSecret(): Uint8Array {
   const jwtSecret = process.env.JWT_SECRET;
@@ -22,8 +22,8 @@ function getJwtSecret(): Uint8Array {
  * Contains essential user identification information
  *
  * @interface AuthTokenPayload
- * @property {string} userId - Unique identifier for the authenticated user
- * @property {string} username - User's username for display and identification
+ * @property userId - Unique identifier for the authenticated user
+ * @property username - User's username for display and identification
  */
 export interface AuthTokenPayload {
   userId: string;
@@ -62,9 +62,9 @@ export type TokenVerificationError = 'invalid-token' | 'invalid-payload';
  * Union type allowing for both successful and failed verification scenarios
  *
  * @typedef {Object} TokenVerificationResult
- * @property {boolean} success - Indicates whether token verification was successful
- * @property {AuthTokenPayload} [payload] - User payload if verification succeeds
- * @property {TokenVerificationError} [error] - Verification error if verification fails
+ * @property success - Indicates whether token verification was successful
+ * @property [payload] - User payload if verification succeeds
+ * @property [error] - Verification error if verification fails
  */
 export type TokenVerificationResult =
   | { success: true; payload: AuthTokenPayload }
@@ -74,8 +74,8 @@ export type TokenVerificationResult =
  * Creates a JSON Web Token (JWT) for user authentication
  * Generates a secure, time-limited token with user identification
  *
- * @param {User} user - User object containing authentication details
- * @returns {Promise<string>} Signed JWT token valid for 24 hours
+ * @param user - User object containing authentication details
+ * @returns Signed JWT token valid for 24 hours
  *
  * @example
  * const token = await createAuthToken(user);
@@ -105,8 +105,8 @@ export async function createAuthToken(user: User): Promise<string> {
  * type guard pattern. This validation prevents malformed tokens from causing
  * runtime errors and ensures type safety throughout the authentication flow.
  *
- * @param {unknown} payload - Token payload to validate (from JWT.verify)
- * @returns {payload is AuthTokenPayload} Type guard indicating valid payload structure
+ * @param payload - Token payload to validate (from JWT.verify)
+ * @returns Type guard indicating valid payload structure
  *
  * @internal This function is only used internally by verifyAuthToken
  *
@@ -140,8 +140,8 @@ function isValidAuthTokenPayload(
  * Verifies the authenticity and validity of a JWT token
  * Checks token signature, expiration, and payload structure
  *
- * @param {string} token - JWT token to verify
- * @returns {Promise<TokenVerificationResult>} Token verification result
+ * @param token - JWT token to verify
+ * @returns Token verification result
  *
  * @example
  * const result = await verifyAuthToken(token);

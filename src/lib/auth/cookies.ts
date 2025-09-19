@@ -10,12 +10,12 @@ const AUTH_COOKIE_NAME = 'auth-token';
  * Gets secure configuration for authentication cookies
  * Configures cookie security, expiration, and scope
  *
- * @returns {Object} Cookie options object
- * @property {boolean} httpOnly - Prevents client-side JavaScript access
- * @property {boolean} secure - Only transmit over HTTPS in production
- * @property {'strict'} sameSite - Prevents cross-site request forgery
- * @property {number} maxAge - Cookie expiration time (24 hours)
- * @property {string} path - Cookie available across entire application
+ * @returns Cookie options object
+ * @property httpOnly - Prevents client-side JavaScript access
+ * @property secure - Only transmit over HTTPS in production
+ * @property sameSite - Prevents cross-site request forgery
+ * @property maxAge - Cookie expiration time (7 days)
+ * @property path - Cookie available across entire application
  */
 function getAuthCookieOptions() {
   return {
@@ -31,8 +31,8 @@ function getAuthCookieOptions() {
  * Sets an authentication cookie for a user
  * Creates a JWT and stores it as a secure, HTTP-only cookie
  *
- * @param {User} user - User to authenticate
- * @returns {Promise<void>} Promise resolving when cookie is set
+ * @param user - User to authenticate
+ * @returns Promise resolving when cookie is set
  *
  * @example
  * await setAuthCookie(user);
@@ -51,7 +51,7 @@ export async function setAuthCookie(user: User): Promise<void> {
  * Removes the authentication cookie
  * Effectively logs out the current user
  *
- * @returns {Promise<void>} Promise that resolves when cookie is cleared
+ * @returns Promise that resolves when cookie is cleared
  *
  * @example
  * await clearAuthCookie();
@@ -66,7 +66,7 @@ export async function clearAuthCookie(): Promise<void> {
 /**
  * Retrieves the current authentication token from cookies
  *
- * @returns {Promise<string | undefined>} Promise resolving to auth token or undefined
+ * @returns Promise resolving to auth token or undefined
  *
  * @example
  * const token = await getAuthToken();

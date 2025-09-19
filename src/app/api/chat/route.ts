@@ -18,11 +18,11 @@ export const maxDuration = 120;
  * - Verifies thread ID is provided
  * - Enforces thread ownership (users can only access their own threads)
  *
- * @param {string} newMessage - The new user message content
- * @param {string} threadId - The thread identifier to validate
- * @param {string} userId - The authenticated user's ID
- * @throws {Error} When request is invalid or user lacks thread access
- * @returns {Promise<void>} Resolves if validation passes, throws otherwise
+ * @param newMessage - The new user message content
+ * @param threadId - The thread identifier to validate
+ * @param userId - The authenticated user's ID
+ * @throws When request is invalid or user lacks thread access
+ * @returns Resolves if validation passes, throws otherwise
  */
 async function validateChatRequest(
   newMessage: string,
@@ -62,8 +62,8 @@ async function validateChatRequest(
  * - Server-sent events for real-time streaming
  * - Proper error handling with structured responses
  *
- * @param {NextRequest} request - The incoming HTTP request
- * @returns {Response} Streaming AI response or error response
+ * @param request - The incoming HTTP request
+ * @returns Streaming AI response or error response
  */
 export async function POST(request: NextRequest) {
   try {

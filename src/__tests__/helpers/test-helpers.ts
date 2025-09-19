@@ -12,7 +12,7 @@ export interface MockUserWithPassword {
  * Creates a mock user with randomly generated ID and username
  * to prevent test pollution and clashing between tests
  *
- * @returns {User} Mock user object with unique properties
+ * @returns Mock user object with unique properties
  */
 export function createMockUser(): User {
   return {
@@ -100,7 +100,7 @@ export function createMockMessage(
 
 /**
  * Creates multiple mock messages with unique IDs
- * @param messages Array of {role, content} objects
+ * @param messages Array of role and content objects
  * @returns Array of mock messages with unique IDs
  */
 export function createMockMessages(
@@ -123,9 +123,9 @@ export function createMockMessages(
  * - User messages: { role: 'user', parts: [{ type: 'text', text: string }] }
  * - Other messages: { role: string, content: unknown }
  *
- * @param {'user' | 'assistant' | 'system'} role - The message role determining format
- * @param {unknown} content - Message content (converted to string for user messages)
- * @returns {object} Mock message formatted according to AI SDK requirements
+ * @param role - The message role determining format
+ * @param content - Message content (converted to string for user messages)
+ * @returns Mock message formatted according to AI SDK requirements
  * @example
  * // Creates user message with parts array
  * const userMsg = createApiMessage('user', 'Hello world');
@@ -172,8 +172,8 @@ export function createApiMessage(
  * - User messages get parts[] array structure
  * - Assistant/system messages get content property
  *
- * @param {Array<{role: string, content: string}>} messages - Array of message objects to convert
- * @returns {Array<object>} Array of mock messages formatted for AI SDK compatibility
+ * @param messages - Array of message objects to convert
+ * @returns Array of mock messages formatted for AI SDK compatibility
  * @example
  * const conversation = createApiMessages([
  *   { role: 'system', content: 'You are helpful' },

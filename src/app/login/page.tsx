@@ -12,7 +12,7 @@ import { loginAction } from '@/lib/auth/actions';
  * Uses server action for authentication with automatic redirect on success
  *
  * @component
- * @returns {React.ReactElement} Login page with authentication form
+ * @returns Login page with authentication form
  */
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(loginAction, null);

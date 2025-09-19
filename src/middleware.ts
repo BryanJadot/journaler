@@ -16,11 +16,11 @@ const PUBLIC_ROUTES = ['/login', '/signup'];
  * - Including timestamp in signature (old requests fail verification)
  * - Using HMAC with shared secret (prevents forgery without the secret)
  *
- * @param {string} userId - The authenticated user's ID
- * @param {string} method - HTTP method (GET, POST, etc.)
- * @param {string} path - Request path
- * @param {number} timestamp - Unix timestamp in seconds
- * @returns {Promise<string>} Base64url encoded HMAC signature
+ * @param userId - The authenticated user's ID
+ * @param method - HTTP method (GET, POST, etc.)
+ * @param path - Request path
+ * @param timestamp - Unix timestamp in seconds
+ * @returns Base64url encoded HMAC signature
  */
 export async function createHmacSignature(
   userId: string,
@@ -66,8 +66,8 @@ export async function createHmacSignature(
  * - Includes method, path, and timestamp in signature to prevent reuse
  * - Only trusted route handlers can verify and use the internal headers
  *
- * @param {NextRequest} request - The incoming request object
- * @returns {NextResponse} Either continues request with signed headers or redirects to login
+ * @param request - The incoming request object
+ * @returns Either continues request with signed headers or redirects to login
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

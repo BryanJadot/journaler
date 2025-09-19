@@ -8,8 +8,8 @@ import type { CreateUserData, User } from '@/lib/user/types';
 /**
  * Creates a new user in the database with a securely hashed password
  *
- * @param {CreateUserData} userData - The data required to create a new user
- * @returns {Promise<User>} The newly created user with sensitive information omitted
+ * @param userData - The data required to create a new user
+ * @returns The newly created user with sensitive information omitted
  *
  * @throws {Error} If database insertion fails or password hashing encounters an issue
  *
@@ -45,8 +45,8 @@ export async function createUser(userData: CreateUserData): Promise<User> {
 /**
  * Retrieves a user from the database by their unique identifier
  *
- * @param {string} id - The unique identifier of the user
- * @returns {Promise<User | null>} The user object if found, null otherwise
+ * @param id - The unique identifier of the user
+ * @returns The user object if found, null otherwise
  *
  * @description
  * - Queries the users table using the provided ID

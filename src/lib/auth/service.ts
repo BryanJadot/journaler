@@ -27,8 +27,8 @@ export function isSignupEnabled(): boolean {
  * and prevent common attack vectors. Uses discriminated union return type
  * for type-safe error handling.
  *
- * @param {string} username - The username string to validate
- * @returns {ValidationResult} Object indicating validation success or specific error
+ * @param username - The username string to validate
+ * @returns Object indicating validation success or specific error
  *
  * Validation rules:
  * - No whitespace characters (spaces, tabs, newlines)
@@ -64,8 +64,8 @@ function validateUsername(username: string):
 /**
  * Authenticates a user with username and password credentials.
  *
- * @param {LoginCredentials} credentials - The login credentials containing username and password
- * @returns {Promise<LoginResult>} Result of the login process, indicating success with user data or specific login error
+ * @param credentials - The login credentials containing username and password
+ * @returns Result of the login process, indicating success with user data or specific login error
  *
  * @description
  * This function performs secure user authentication with the following steps:
@@ -139,8 +139,8 @@ export async function loginUser(
 /**
  * Registers a new user in the system with comprehensive username validation.
  *
- * @param {CreateUserData} userData - The user registration data containing username and password
- * @returns {Promise<SignupResult>} Result of the signup process, indicating success or specific signup error
+ * @param userData - The user registration data containing username and password
+ * @returns Result of the signup process, indicating success or specific signup error
  *
  * @description
  * This function performs multiple validation checks before creating a new user:

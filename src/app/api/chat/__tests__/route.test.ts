@@ -63,10 +63,10 @@ describe('/api/chat POST', () => {
   /**
    * Helper function to create test requests with the chat API format.
    *
-   * @param {string} message - The user's message content
-   * @param {string} threadId - The thread identifier (UUID format)
-   * @param {ChatMessage[]} history - Previous conversation messages
-   * @returns {NextRequest} Properly formatted API request for testing
+   * @param message - The user's message content
+   * @param threadId - The thread identifier (UUID format)
+   * @param history - Previous conversation messages
+   * @returns Properly formatted API request for testing
    */
   const createRequest = (
     message = 'Hello',
@@ -86,8 +86,8 @@ describe('/api/chat POST', () => {
    * The chat API streams responses as newline-delimited JSON objects.
    * This helper parses the stream and returns all response objects in order.
    *
-   * @param {Response} response - The streaming response from the API
-   * @returns {Promise<StreamingResponse[]>} Array of parsed response objects
+   * @param response - The streaming response from the API
+   * @returns Array of parsed response objects
    */
   const parseStreamingResponse = async (
     response: Response

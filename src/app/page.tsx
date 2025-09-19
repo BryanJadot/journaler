@@ -15,7 +15,7 @@ import { getOrCreateChatUrl } from '@/lib/chat/redirect-helpers';
  * This ensures users always land in their personalized chat interface when visiting
  * the root URL, providing a seamless experience without showing an empty landing page.
  *
- * @returns {Promise<never>} Always redirects, never renders content
+ * @returns Always redirects, never renders content
  */
 export default async function HomePage() {
   // Extract user ID from middleware-set headers (auth already validated)

@@ -14,12 +14,12 @@ const MAX_TIMESTAMP_AGE = 120;
  * to prevent timing attacks. The signature includes userId, method, path, and timestamp
  * to prevent reuse across different requests.
  *
- * @param {string} userId - The user ID from headers
- * @param {string} method - HTTP method from headers
- * @param {string} path - Request path from headers
- * @param {number} timestamp - Unix timestamp from headers
- * @param {string} receivedSignature - The signature to verify
- * @returns {boolean} True if signature is valid
+ * @param userId - The user ID from headers
+ * @param method - HTTP method from headers
+ * @param path - Request path from headers
+ * @param timestamp - Unix timestamp from headers
+ * @param receivedSignature - The signature to verify
+ * @returns True if signature is valid
  */
 export function verifyHmacSignature(
   userId: string,
@@ -73,8 +73,8 @@ export function verifyHmacSignature(
  * - Timestamp check prevents replay of old signed headers
  * - Constant-time comparison prevents signature timing attacks
  *
- * @returns {Promise<string>} The authenticated user's ID
- * @throws {Error} When headers are missing, invalid, or signature verification fails
+ * @returns The authenticated user's ID
+ * @throws When headers are missing, invalid, or signature verification fails
  *
  * @example
  * // In a server component or API route

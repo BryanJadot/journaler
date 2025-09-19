@@ -11,9 +11,9 @@ import { threads, messages } from '@/lib/db/schema';
  * and associates it with the specified user. The thread's updatedAt timestamp
  * is set to the current time to establish when it was created.
  *
- * @param {string} userId - The unique identifier of the user creating the thread
- * @param {string} name - The display name/title for the new thread
- * @returns {Promise<Thread>} A promise that resolves to the newly created thread object
+ * @param userId - The unique identifier of the user creating the thread
+ * @param name - The display name/title for the new thread
+ * @returns A promise that resolves to the newly created thread object
  *
  * @example
  * ```typescript
@@ -43,8 +43,8 @@ export async function createThread(userId: string, name: string) {
  * their last update time (most recent first). Each thread includes only its
  * most recent message to provide a preview for thread listing interfaces.
  *
- * @param {string} userId - The unique identifier of the user whose threads to retrieve
- * @returns {Promise<ThreadWithRecentMessage[]>} A promise that resolves to an array of threads,
+ * @param userId - The unique identifier of the user whose threads to retrieve
+ * @returns A promise that resolves to an array of threads,
  *   each containing its most recent message, sorted by updatedAt descending
  *
  * @example
@@ -78,8 +78,8 @@ export async function getThreadsByUser(userId: string) {
  * getThreadsByUser, this excludes all message data for better performance
  * when rendering thread lists in UI components.
  *
- * @param {string} userId - The unique identifier of the user whose threads to retrieve
- * @returns {Promise<Thread[]>} A promise that resolves to an array of thread summaries
+ * @param userId - The unique identifier of the user whose threads to retrieve
+ * @returns A promise that resolves to an array of thread summaries
  *   containing only id, name, and updatedAt fields, sorted by most recent activity
  *
  * @example
@@ -114,8 +114,8 @@ export async function getThreadSummariesForUser(
  * with all associated messages in chronological order. This is typically used
  * when resuming a conversation or displaying the current active chat.
  *
- * @param {string} userId - The unique identifier of the user
- * @returns {Promise<ThreadWithMessages | undefined>} A promise that resolves to the most recent thread
+ * @param userId - The unique identifier of the user
+ * @returns A promise that resolves to the most recent thread
  *   with all messages, or undefined if the user has no threads
  *
  * @example
@@ -148,8 +148,8 @@ export async function getMostRecentThread(userId: string) {
  * messages in chronological order. This is the primary function used when
  * displaying a specific conversation thread to the user.
  *
- * @param {string} threadId - The unique identifier of the thread to retrieve
- * @returns {Promise<ThreadWithMessages | undefined>} A promise that resolves to the thread
+ * @param threadId - The unique identifier of the thread to retrieve
+ * @returns A promise that resolves to the thread
  *   with all messages, or undefined if the thread doesn't exist
  *
  * @example
@@ -184,9 +184,9 @@ export async function getThreadWithMessages(threadId: string) {
  * all messages, making it ideal for authentication checks in API endpoints.
  * Returns only the essential thread metadata needed for ownership verification.
  *
- * @param {string} threadId - The unique identifier of the thread to verify
- * @param {string} userId - The user ID to check ownership against
- * @returns {Promise<boolean>} A promise that resolves to true if the user owns the thread
+ * @param threadId - The unique identifier of the thread to verify
+ * @param userId - The user ID to check ownership against
+ * @returns A promise that resolves to true if the user owns the thread
  *
  * @example
  * ```typescript
@@ -228,12 +228,12 @@ export async function verifyThreadOwnership(
  * The transaction ensures that both operations succeed or fail together,
  * preventing orphaned messages or stale thread timestamps.
  *
- * @param {string} threadId - The unique identifier of the thread to add the message to
- * @param {Role} role - The role of the message sender ('user', 'assistant', or 'developer')
- * @param {string} content - The text content of the message
- * @param {OutputType} [outputType='text'] - The format type of the message content
+ * @param threadId - The unique identifier of the thread to add the message to
+ * @param role - The role of the message sender ('user', 'assistant', or 'developer')
+ * @param content - The text content of the message
+ * @param outputType - The format type of the message content
  *   (defaults to 'text' for standard text messages)
- * @returns {Promise<Message>} A promise that resolves to the newly created message object
+ * @returns A promise that resolves to the newly created message object
  *
  * @example
  * ```typescript

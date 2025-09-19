@@ -12,7 +12,7 @@
  * - Should be stored securely in environment variables, never in source code
  * - Changing this secret will invalidate all existing signed headers
  *
- * @returns {string | undefined} The HMAC secret key, or undefined if INTERNAL_HEADER_SECRET is not configured
+ * @returns The HMAC secret key, or undefined if INTERNAL_HEADER_SECRET is not configured
  *
  * @example
  * const secret = getHmacSecret();

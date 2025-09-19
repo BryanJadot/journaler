@@ -18,8 +18,8 @@ import { createThread } from '@/lib/chat/service';
  * The redirect ensures users start interacting with the new thread immediately,
  * providing a smooth UX flow from clicking "New Chat" to typing their first message.
  *
- * @throws {Error} If user is not authenticated or thread creation fails
- * @returns {Promise<never>} Always redirects, never returns
+ * @throws If user is not authenticated or thread creation fails
+ * @returns Always redirects, never returns
  *
  * @example
  * // In a form component

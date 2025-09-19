@@ -11,7 +11,7 @@ import { ThreadSummary } from '@/lib/chat/types';
  * Loading skeleton component displayed while the sidebar fetches thread data.
  * Renders placeholder elements to prevent layout shift during async data loading.
  *
- * @returns {JSX.Element} Three skeleton loading bars simulating thread items
+ * @returns Three skeleton loading bars simulating thread items
  */
 export function SidebarThreadsSkeleton() {
   return (
@@ -28,9 +28,9 @@ export function SidebarThreadsSkeleton() {
  * Renders the list of chat thread navigation links.
  * Handles both populated and empty states for the thread list.
  *
- * @param {Object} props - Component props
- * @param {ThreadSummary[]} props.threads - Array of thread summaries to display
- * @returns {JSX.Element} List of clickable thread links or empty state message
+ * @param props - Component props
+ * @param props.threads - Array of thread summaries to display
+ * @returns List of clickable thread links or empty state message
  */
 export function SidebarThreads({ threads }: { threads: ThreadSummary[] }) {
   return (
@@ -74,7 +74,7 @@ export function SidebarThreads({ threads }: { threads: ThreadSummary[] }) {
  * - Responsive hover states and transitions
  *
  * @async
- * @returns {Promise<JSX.Element>} The complete sidebar component
+ * @returns The complete sidebar component
  *
  * @example
  * // Usage in a layout component

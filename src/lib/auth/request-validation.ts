@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * Validates the format and content of a signup request, ensuring proper JSON structure and input requirements.
  *
- * @param {NextRequest} request - The incoming Next.js server request to validate
- * @returns {Promise<ValidationResult>} Validation result indicating success or failure with appropriate response
+ * @param request - The incoming Next.js server request to validate
+ * @returns Validation result indicating success or failure with appropriate response
  *
  * @description
  * Performs comprehensive validation of signup request:
