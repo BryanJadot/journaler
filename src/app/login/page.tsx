@@ -65,7 +65,7 @@ export default function LoginPage() {
             <div className="text-center">
               <p className="text-sm text-neutral">
                 Don&#39;t have an account?{' '}
-                <Link href="/login" className="font-medium link">
+                <Link href="/signup" className="font-medium link">
                   Sign up
                 </Link>
               </p>
