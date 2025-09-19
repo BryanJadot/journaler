@@ -37,7 +37,7 @@ const useAutoScroll = (
     if (!containerRef.current) return;
 
     containerRef.current.scrollTo({
-      top: 0, // With flex-col-reverse, "bottom" is actually top: 0
+      top: containerRef.current.scrollHeight,
       behavior: 'smooth',
     });
   }, [containerRef]);
@@ -61,14 +61,18 @@ const useAutoScroll = (
 
   useEffect(() => {
     // With flex-col-reverse, we need a negative threshold
-    const threshold = -15;
+    const threshold = 60;
     if (!containerRef.current || newestMessageLength === 0) {
       return;
     }
 
     // Only auto-scroll if user is already near the bottom
-
-    if (containerRef.current.scrollTop >= threshold) {
+    if (
+      containerRef.current.scrollTop >=
+      containerRef.current.scrollHeight -
+        containerRef.current.clientHeight -
+        threshold
+    ) {
       scrollToBottom();
     }
   }, [containerRef, newestMessageLength, scrollToBottom]);
@@ -91,11 +95,11 @@ export default function ChatContainer({ children }: ChatContainerProps) {
 
   return (
     <div className="flex flex-col h-screen w-full bg-base-100">
-      <div className="overflow-y-auto flex flex-col items-center flex-1 px-4 py-8">
-        <div
-          ref={containerRef}
-          className="flex flex-col-reverse gap-8 max-w-4xl"
-        >
+      <div
+        ref={containerRef}
+        className="overflow-y-auto flex flex-col items-center flex-1"
+      >
+        <div className="flex flex-col-reverse gap-8 w-4xl my-8">
           {/* Live messages from store */}
           {newMessages.length > 0 && <MessageList messages={newMessages} />}
 
