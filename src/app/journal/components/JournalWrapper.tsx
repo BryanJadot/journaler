@@ -10,8 +10,10 @@ import { SidebarContents } from '@/app/journal/components/Sidebar';
  */
 export default async function JournalWrapper({
   children,
+  currentThreadId,
 }: {
   children: React.ReactNode;
+  currentThreadId: string;
 }) {
   return (
     <div className="drawer drawer-open">
@@ -22,7 +24,7 @@ export default async function JournalWrapper({
 
       {/* Left sidebar with thread navigation */}
       <nav className="drawer-side">
-        <SidebarContents />
+        <SidebarContents currentThreadId={currentThreadId} />
       </nav>
     </div>
   );

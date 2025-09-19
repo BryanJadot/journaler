@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
@@ -31,7 +32,11 @@ export function SidebarThreadsSkeleton() {
  * @param props.threads - Array of thread summaries to display
  * @returns List of clickable thread links or empty state message
  */
-export async function SidebarThreads() {
+export async function SidebarThreads({
+  currentThreadId,
+}: {
+  currentThreadId: string;
+}) {
   // Get authenticated user ID from headers (middleware handles auth)
   const userId = await getUserIdFromHeader();
 
@@ -46,7 +51,9 @@ export async function SidebarThreads() {
         <li key={thread.id}>
           <Link
             href={getChatUrl(thread.id)}
-            className="w-full"
+            className={clsx('w-full', {
+              'menu-active': thread.id === currentThreadId,
+            })}
             title={thread.name} // Tooltip shows full name for truncated text
           >
             {thread.name}
@@ -88,7 +95,11 @@ export async function SidebarThreads() {
  *   <Sidebar />
  * </Suspense>
  */
-export function SidebarContents() {
+export function SidebarContents({
+  currentThreadId,
+}: {
+  currentThreadId: string;
+}) {
   return (
     <div className="flex flex-col w-80 h-screen bg-base-200 border-r border-base-300">
       {/*
@@ -111,7 +122,7 @@ export function SidebarContents() {
           */}
       <div className="border-t border-base-300 flex flex-col flex-1 overflow-y-auto gap-2">
         <Suspense fallback={<SidebarThreadsSkeleton />}>
-          <SidebarThreads />
+          <SidebarThreads currentThreadId={currentThreadId} />
         </Suspense>
       </div>
     </div>

@@ -56,7 +56,7 @@ export default async function Page({
   }));
 
   return (
-    <JournalWrapper>
+    <JournalWrapper currentThreadId={threadId}>
       {/* Initialize thread store with server data */}
       <ThreadInitializer
         threadId={threadId}
