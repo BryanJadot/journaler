@@ -55,14 +55,14 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5-mini',
+      model: 'gpt-5',
       input: [
         { role: 'user', content: 'Hello' },
         { role: 'assistant', content: 'Hi there!' },
         { role: 'user', content: 'How are you?' },
       ],
-      temperature: 0.7,
-      top_p: 0.9,
+      reasoning: { effort: 'medium' },
+      text: { verbosity: 'medium' },
       instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
@@ -123,10 +123,10 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5-mini',
+      model: 'gpt-5',
       input: [{ role: 'user', content: 'First message' }],
-      temperature: 0.7,
-      top_p: 0.9,
+      reasoning: { effort: 'medium' },
+      text: { verbosity: 'medium' },
       instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
@@ -264,15 +264,15 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5-mini',
+      model: 'gpt-5',
       input: [
         { role: 'system', content: 'You are helpful' },
         { role: 'user', content: 'Hi' },
         { role: 'assistant', content: 'Hello!' },
         { role: 'user', content: 'How can you help?' },
       ],
-      temperature: 0.7,
-      top_p: 0.9,
+      reasoning: { effort: 'medium' },
+      text: { verbosity: 'medium' },
       instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
@@ -300,10 +300,10 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5-mini',
+      model: 'gpt-5',
       input: [{ role: 'user', content: 'Test message' }],
-      temperature: 0.7,
-      top_p: 0.9,
+      reasoning: { effort: 'medium' },
+      text: { verbosity: 'medium' },
       instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
     expect(results).toEqual(['Test']);
