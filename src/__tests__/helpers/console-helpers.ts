@@ -33,11 +33,21 @@ function createConsoleSilencer(method: 'error' | 'warn') {
 }
 
 export function silenceConsoleErrors() {
-  return createConsoleSilencer('error');
+  const helpers = createConsoleSilencer('error');
+  return {
+    expectConsoleError: helpers.expectConsoleError,
+    getConsoleErrors: helpers.getConsoleErrors,
+    clearConsoleErrors: helpers.clearConsoleErrors,
+  };
 }
 
 export function silenceConsoleWarnings() {
-  return createConsoleSilencer('warn');
+  const helpers = createConsoleSilencer('warn');
+  return {
+    expectConsoleWarn: helpers.expectConsoleWarn,
+    getConsoleWarns: helpers.getConsoleWarns,
+    clearConsoleWarns: helpers.clearConsoleWarns,
+  };
 }
 
 export function silenceConsole() {
