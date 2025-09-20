@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 
+import { silenceConsoleErrors } from '@/__tests__/helpers/console-helpers';
 import { POST } from '@/app/api/threads/auto-name/route';
 import * as getUserFromHeaderModule from '@/lib/auth/get-user-from-header';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
@@ -30,6 +31,8 @@ const mockValidateThreadForAutoNaming =
 const mockGenerateThreadName = autoNamingService.generateThreadName;
 
 describe('/api/threads/auto-name', () => {
+  silenceConsoleErrors();
+
   const mockUserId = 'user-123';
   const mockThreadId = 'thread-456';
   const mockGeneratedName = 'Generated Thread Name';

@@ -18,6 +18,10 @@ jest.mock('@/lib/db/messages', () => ({
   saveMessage: jest.fn(),
 }));
 
+jest.mock('@/lib/internal/fire-and-forget', () => ({
+  fireAndForget: jest.fn(),
+}));
+
 // Mock the OpenAI client
 jest.mock('@/lib/openai/client', () => ({
   openaiClient: {} as OpenAI,
@@ -49,6 +53,13 @@ const streamOpenAITokensModule = jest.requireMock('../stream-openai-tokens');
 const mockStreamOpenAITokens =
   streamOpenAITokensModule.streamOpenAITokens as jest.MockedFunction<
     typeof streamOpenAITokensModule.streamOpenAITokens
+  >;
+
+// Get mock fire-and-forget function
+const fireAndForgetModule = jest.requireMock('@/lib/internal/fire-and-forget');
+const mockFireAndForget =
+  fireAndForgetModule.fireAndForget as jest.MockedFunction<
+    typeof fireAndForgetModule.fireAndForget
   >;
 
 /**
@@ -287,6 +298,9 @@ describe('/api/chat POST', () => {
       history,
       message
     );
+
+    // Should NOT trigger fire-and-forget auto-naming when history exists
+    expect(mockFireAndForget).not.toHaveBeenCalled();
   });
 
   it('should handle streamOpenAITokens errors and stream error response', async () => {
@@ -355,6 +369,19 @@ describe('/api/chat POST', () => {
       expect.any(Object),
       [],
       'Hello'
+    );
+
+    // Should trigger fire-and-forget auto-naming for first message
+    expect(mockFireAndForget).toHaveBeenCalledWith(
+      userId,
+      '/api/threads/auto-name',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          threadId: '550e8400-e29b-41d4-a716-446655440001',
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      }
     );
   });
 });

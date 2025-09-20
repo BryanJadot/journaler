@@ -1,3 +1,4 @@
+import { silenceConsoleErrors } from '@/__tests__/helpers/console-helpers';
 import { setHmacHeaders } from '@/lib/auth/hmac-headers';
 import * as hmacSecretModule from '@/lib/auth/hmac-secret';
 import { createHmacSignature } from '@/lib/auth/hmac-sign';
@@ -29,6 +30,8 @@ global.fetch = mockFetch;
  * authenticated internal API calls without waiting for responses.
  */
 describe('Fire and Forget', () => {
+  silenceConsoleErrors();
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetHmacSecret.mockReturnValue('test-secret-key');
