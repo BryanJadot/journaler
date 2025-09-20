@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { streamOpenAITokens } from '@/app/api/chat/stream-openai-tokens';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
-import { saveMessage, verifyThreadOwnership } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
 import { StreamingResponse } from '@/lib/chat/types/streaming';
+import { saveMessage } from '@/lib/db/messages';
+import { verifyThreadOwnership } from '@/lib/db/threads';
+import { fireAndForget } from '@/lib/internal/fire-and-forget';
 import { openaiClient } from '@/lib/openai/client';
 
 // Allow up to 2 minutes for AI generation
@@ -88,6 +90,15 @@ export async function POST(request: NextRequest) {
 
     // Save the user's message to the database immediately
     await saveMessage(threadId, 'user', newMessage, 'text');
+
+    // Fire-and-forget call to auto-name the thread if this is the first message
+    if (history.length === 0) {
+      fireAndForget(userId, '/api/threads/auto-name', {
+        method: 'POST',
+        body: JSON.stringify({ threadId }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     // Set up JSON streaming response
     const encoder = new TextEncoder();

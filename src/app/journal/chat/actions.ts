@@ -1,12 +1,11 @@
 'use server';
 
-import { revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
-import { createThread, getUserThreadsCacheTag } from '@/lib/chat/service';
 import { getChatUrl } from '@/lib/chat/url-helpers';
+import { createThread } from '@/lib/db/threads';
 
 /**
  * Server action that creates a new chat thread and redirects to it.
@@ -30,9 +29,6 @@ export async function createNewThreadAction() {
 
   // Create new thread with default name - user can rename it later
   const newThread = await createThread(userId, DEFAULT_THREAD_NAME);
-
-  // Invalidate the user's thread cache so the sidebar updates
-  revalidateTag(getUserThreadsCacheTag(userId));
 
   // Redirect immediately to the new thread's chat page
   redirect(getChatUrl(newThread.id));

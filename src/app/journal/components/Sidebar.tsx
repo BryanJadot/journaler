@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { createNewThreadAction } from '@/app/journal/chat/actions';
 import { SidebarThreadsList } from '@/app/journal/components/SidebarThreadsList';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
-import { getCachedThreadSummaries } from '@/lib/chat/service';
+import { getCachedThreadSummaries } from '@/lib/db/threads';
 
 /**
  * Loading skeleton component for sidebar thread list.

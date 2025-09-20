@@ -10,9 +10,12 @@ import { StreamingResponse } from '@/lib/chat/types/streaming';
 jest.mock('@/lib/auth/get-user-from-header');
 
 // Mock the chat service functions
-jest.mock('@/lib/chat/service', () => ({
-  saveMessage: jest.fn(),
+jest.mock('@/lib/db/threads', () => ({
   verifyThreadOwnership: jest.fn(),
+}));
+
+jest.mock('@/lib/db/messages', () => ({
+  saveMessage: jest.fn(),
 }));
 
 // Mock the OpenAI client
@@ -31,13 +34,14 @@ const mockGetUserIdFromHeader =
   >;
 
 // Get mock chat service functions
-const chatService = jest.requireMock('@/lib/chat/service');
-const mockSaveMessage = chatService.saveMessage as jest.MockedFunction<
-  typeof chatService.saveMessage
+const threadsService = jest.requireMock('@/lib/db/threads');
+const messagesService = jest.requireMock('@/lib/db/messages');
+const mockSaveMessage = messagesService.saveMessage as jest.MockedFunction<
+  typeof messagesService.saveMessage
 >;
 const mockVerifyThreadOwnership =
-  chatService.verifyThreadOwnership as jest.MockedFunction<
-    typeof chatService.verifyThreadOwnership
+  threadsService.verifyThreadOwnership as jest.MockedFunction<
+    typeof threadsService.verifyThreadOwnership
   >;
 
 // Get mock streamOpenAITokens function

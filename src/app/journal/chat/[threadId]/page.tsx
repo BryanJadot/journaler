@@ -4,8 +4,8 @@ import ChatContainer from '@/app/journal/chat/[threadId]/components/ChatContaine
 import MessageList from '@/app/journal/chat/[threadId]/components/MessageList';
 import ThreadInitializer from '@/app/journal/chat/[threadId]/components/ThreadInitializer';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
-import { getThreadWithMessages } from '@/lib/chat/service';
 import { ChatMessage } from '@/lib/chat/types';
+import { getThreadWithMessages } from '@/lib/db/threads';
 
 /**
  * Dynamic chat thread page component that renders a specific chat conversation.

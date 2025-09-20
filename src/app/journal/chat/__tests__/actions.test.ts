@@ -4,8 +4,8 @@ import { redirect } from 'next/navigation';
 import { createNewThreadAction } from '@/app/journal/chat/actions';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
-import { createThread, getUserThreadsCacheTag } from '@/lib/chat/service';
 import { getChatUrl } from '@/lib/chat/url-helpers';
+import { createThread, getUserThreadsCacheTag } from '@/lib/db/threads';
 
 // Mock all external dependencies to isolate the server action logic
 jest.mock('next/navigation', () => ({
@@ -16,7 +16,7 @@ jest.mock('next/cache', () => ({
   revalidateTag: jest.fn(),
 }));
 
-jest.mock('@/lib/chat/service', () => ({
+jest.mock('@/lib/db/threads', () => ({
   createThread: jest.fn(),
   getUserThreadsCacheTag: jest.fn(),
 }));

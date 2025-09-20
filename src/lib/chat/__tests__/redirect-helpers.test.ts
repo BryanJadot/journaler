@@ -1,13 +1,13 @@
 import { createMockUser } from '@/__tests__/helpers/test-helpers';
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
 import { getOrCreateChatUrl } from '@/lib/chat/redirect-helpers';
-import { createThread, getMostRecentThread } from '@/lib/chat/service';
 import { getChatUrl } from '@/lib/chat/url-helpers';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
+import { createThread, getMostRecentThread } from '@/lib/db/threads';
 
 // Mock the service functions
-jest.mock('../service', () => ({
+jest.mock('../../db/threads', () => ({
   getMostRecentThread: jest.fn(),
   createThread: jest.fn(),
 }));
