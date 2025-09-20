@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 
+import { silenceConsoleWarnings } from '@/__tests__/helpers/console-helpers';
 import * as cookiesModule from '@/lib/auth/cookies';
 import { extractHmacHeaders } from '@/lib/auth/hmac-headers';
 import * as hmacSecretModule from '@/lib/auth/hmac-secret';
@@ -36,6 +37,8 @@ const mockVerifyAuthToken = jwtModule.verifyAuthToken as jest.MockedFunction<
  * to handle both service-to-service and user session authentication.
  */
 describe('Middleware Authentication', () => {
+  silenceConsoleWarnings();
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetHmacSecret.mockReturnValue('test-secret-key');

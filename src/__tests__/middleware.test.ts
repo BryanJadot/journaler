@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { silenceConsoleWarnings } from '@/__tests__/helpers/console-helpers';
 import * as cookiesModule from '@/lib/auth/cookies';
 import * as hmacSecretModule from '@/lib/auth/hmac-secret';
 import { createHmacSignature } from '@/lib/auth/hmac-sign';
@@ -36,6 +37,8 @@ const mockGetHmacSecret = hmacSecretModule.getHmacSecret as jest.MockedFunction<
  * - Public route access: allows certain routes without authentication
  */
 describe('middleware', () => {
+  silenceConsoleWarnings();
+
   beforeEach(() => {
     // Clear all mock call history and reset mock implementations
     jest.clearAllMocks();

@@ -1,3 +1,4 @@
+import { silenceConsoleWarnings } from '@/__tests__/helpers/console-helpers';
 import * as hmacSecretModule from '@/lib/auth/hmac-secret';
 import { createHmacSignature } from '@/lib/auth/hmac-sign';
 import { verifyHmacSignature } from '@/lib/auth/hmac-verify';
@@ -16,6 +17,8 @@ const mockGetHmacSecret = hmacSecretModule.getHmacSecret as jest.MockedFunction<
  * to ensure it properly validates signatures, timestamps, and handles errors.
  */
 describe('verifyHmacSignature', () => {
+  silenceConsoleWarnings();
+
   const testSecret = 'test-secret-for-verification-tests';
 
   beforeEach(() => {
