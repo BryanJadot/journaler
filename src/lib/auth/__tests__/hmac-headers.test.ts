@@ -1,276 +1,278 @@
-import { verifyHmacSignature as verifyHmacSignatureNode } from '@/lib/auth/get-user-from-header';
-import * as hmacSecretModule from '@/lib/auth/hmac-secret';
-import { createHmacSignature as createHmacSignatureEdge } from '@/middleware';
-
-// Mock the secret getter
-const mockGetHmacSecret = jest.spyOn(hmacSecretModule, 'getHmacSecret');
+import {
+  setHmacHeaders,
+  extractHmacHeaders,
+  stripInternalHeaders,
+} from '@/lib/auth/hmac-headers';
+import type { HmacAuthHeaders } from '@/lib/auth/hmac-types';
 
 /**
- * Test suite for HMAC header signing system compatibility and security.
+ * Test suite for HMAC header manipulation utilities.
  *
- * This suite verifies the critical security mechanism that prevents header
- * tampering and replay attacks in the authentication system. It tests:
- *
- * - Cross-runtime compatibility between Edge (middleware) and Node.js (routes)
- * - Signature verification with various tampering scenarios
- * - Base64url encoding correctness for URL-safe transmission
- * - Error handling when cryptographic components are missing
- *
- * The HMAC system provides defense against:
- * - Header injection attacks (malicious x-internal-* headers)
- * - Cross-request signature reuse (method/path binding)
- * - Replay attacks (timestamp expiration)
- * - Signature forgery (cryptographic HMAC protection)
+ * This suite tests the functions that set, extract, and strip HMAC authentication
+ * headers used in the middleware and authentication system.
  */
-describe('HMAC Header Signing', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    // Set up a test secret for each test
-    mockGetHmacSecret.mockReturnValue('test-secret-key-for-hmac');
-  });
+describe('HMAC Headers Utilities', () => {
+  describe('setHmacHeaders', () => {
+    it('should set all required headers with x-internal prefix', () => {
+      const headers = new Headers();
+      const auth: HmacAuthHeaders = {
+        userId: 'user-123',
+        method: 'POST',
+        path: '/api/chat',
+        timestamp: 1234567890,
+        signature: 'abc123signature',
+      };
 
-  describe('Edge to Node compatibility', () => {
-    it('should create compatible signatures between Edge and Node runtimes', async () => {
-      const userId = 'user-123';
-      const method = 'POST';
-      const path = '/api/chat';
-      const timestamp = Math.floor(Date.now() / 1000);
+      setHmacHeaders(headers, auth, 'x-internal');
 
-      // Create signature using Edge runtime (middleware)
-      const edgeSignature = await createHmacSignatureEdge(
-        userId,
-        method,
-        path,
-        timestamp
-      );
-
-      // Verify signature using Node runtime (route handler)
-      const isValid = verifyHmacSignatureNode(
-        userId,
-        method,
-        path,
-        timestamp,
-        edgeSignature
-      );
-
-      expect(isValid).toBe(true);
-      expect(edgeSignature).toBeDefined();
-      expect(edgeSignature.length).toBeGreaterThan(0);
+      expect(headers.get('x-internal-user')).toBe('user-123');
+      expect(headers.get('x-internal-ts')).toBe('1234567890');
+      expect(headers.get('x-internal-sig')).toBe('abc123signature');
+      expect(headers.get('x-internal-method')).toBe('POST');
+      expect(headers.get('x-internal-path')).toBe('/api/chat');
     });
 
-    it('should fail verification with tampered userId', async () => {
-      const userId = 'user-123';
-      const method = 'POST';
-      const path = '/api/chat';
-      const timestamp = Math.floor(Date.now() / 1000);
+    it('should set all required headers with x-service prefix', () => {
+      const headers = new Headers();
+      const auth: HmacAuthHeaders = {
+        userId: 'service-user',
+        method: 'GET',
+        path: '/api/test',
+        timestamp: 9876543210,
+        signature: 'xyz789signature',
+      };
 
-      const signature = await createHmacSignatureEdge(
-        userId,
-        method,
-        path,
-        timestamp
-      );
+      setHmacHeaders(headers, auth, 'x-service');
 
-      // Try to verify with different userId
-      const isValid = verifyHmacSignatureNode(
-        'user-456',
-        method,
-        path,
-        timestamp,
-        signature
-      );
-
-      expect(isValid).toBe(false);
+      expect(headers.get('x-service-user')).toBe('service-user');
+      expect(headers.get('x-service-ts')).toBe('9876543210');
+      expect(headers.get('x-service-sig')).toBe('xyz789signature');
+      expect(headers.get('x-service-method')).toBe('GET');
+      expect(headers.get('x-service-path')).toBe('/api/test');
     });
 
-    it('should fail verification with tampered method', async () => {
-      const userId = 'user-123';
-      const method = 'POST';
-      const path = '/api/chat';
-      const timestamp = Math.floor(Date.now() / 1000);
+    it('should overwrite existing headers', () => {
+      const headers = new Headers();
+      headers.set('x-internal-user', 'old-user');
 
-      const signature = await createHmacSignatureEdge(
-        userId,
-        method,
-        path,
-        timestamp
-      );
+      const auth: HmacAuthHeaders = {
+        userId: 'new-user',
+        method: 'POST',
+        path: '/api/chat',
+        timestamp: 1234567890,
+        signature: 'signature',
+      };
 
-      // Try to verify with different method
-      const isValid = verifyHmacSignatureNode(
-        userId,
-        'GET',
-        path,
-        timestamp,
-        signature
-      );
+      setHmacHeaders(headers, auth, 'x-internal');
 
-      expect(isValid).toBe(false);
-    });
-
-    it('should fail verification with tampered path', async () => {
-      const userId = 'user-123';
-      const method = 'POST';
-      const path = '/api/chat';
-      const timestamp = Math.floor(Date.now() / 1000);
-
-      const signature = await createHmacSignatureEdge(
-        userId,
-        method,
-        path,
-        timestamp
-      );
-
-      // Try to verify with different path
-      const isValid = verifyHmacSignatureNode(
-        userId,
-        method,
-        '/api/users',
-        timestamp,
-        signature
-      );
-
-      expect(isValid).toBe(false);
-    });
-
-    it('should fail verification with tampered timestamp', async () => {
-      const userId = 'user-123';
-      const method = 'POST';
-      const path = '/api/chat';
-      const timestamp = Math.floor(Date.now() / 1000);
-
-      const signature = await createHmacSignatureEdge(
-        userId,
-        method,
-        path,
-        timestamp
-      );
-
-      // Try to verify with different timestamp
-      const isValid = verifyHmacSignatureNode(
-        userId,
-        method,
-        path,
-        timestamp + 1,
-        signature
-      );
-
-      expect(isValid).toBe(false);
-    });
-
-    it('should fail verification with invalid signature format', async () => {
-      const userId = 'user-123';
-      const method = 'POST';
-      const path = '/api/chat';
-      const timestamp = Math.floor(Date.now() / 1000);
-
-      // Try to verify with invalid signature
-      const isValid = verifyHmacSignatureNode(
-        userId,
-        method,
-        path,
-        timestamp,
-        'invalid-signature'
-      );
-
-      expect(isValid).toBe(false);
-    });
-
-    it('should produce different signatures for different inputs', async () => {
-      const timestamp = Math.floor(Date.now() / 1000);
-
-      const sig1 = await createHmacSignatureEdge(
-        'user-1',
-        'GET',
-        '/api/test',
-        timestamp
-      );
-      const sig2 = await createHmacSignatureEdge(
-        'user-2',
-        'GET',
-        '/api/test',
-        timestamp
-      );
-      const sig3 = await createHmacSignatureEdge(
-        'user-1',
-        'POST',
-        '/api/test',
-        timestamp
-      );
-      const sig4 = await createHmacSignatureEdge(
-        'user-1',
-        'GET',
-        '/api/other',
-        timestamp
-      );
-
-      // All signatures should be different
-      expect(sig1).not.toBe(sig2);
-      expect(sig1).not.toBe(sig3);
-      expect(sig1).not.toBe(sig4);
-      expect(sig2).not.toBe(sig3);
-      expect(sig2).not.toBe(sig4);
-      expect(sig3).not.toBe(sig4);
-    });
-
-    it('should handle special characters in paths', async () => {
-      const userId = 'user-123';
-      const method = 'GET';
-      const path = '/api/chat/thread-id-with-special-chars_123';
-      const timestamp = Math.floor(Date.now() / 1000);
-
-      const signature = await createHmacSignatureEdge(
-        userId,
-        method,
-        path,
-        timestamp
-      );
-      const isValid = verifyHmacSignatureNode(
-        userId,
-        method,
-        path,
-        timestamp,
-        signature
-      );
-
-      expect(isValid).toBe(true);
+      expect(headers.get('x-internal-user')).toBe('new-user');
     });
   });
 
-  describe('Base64URL encoding', () => {
-    it('should produce URL-safe base64 signatures', async () => {
-      const userId = 'user-123';
-      const method = 'POST';
-      const path = '/api/chat';
-      const timestamp = Math.floor(Date.now() / 1000);
+  describe('extractHmacHeaders', () => {
+    it('should extract all headers with x-internal prefix', () => {
+      const headers = new Headers();
+      headers.set('x-internal-user', 'user-123');
+      headers.set('x-internal-ts', '1234567890');
+      headers.set('x-internal-sig', 'abc123signature');
+      headers.set('x-internal-method', 'POST');
+      headers.set('x-internal-path', '/api/chat');
 
-      const signature = await createHmacSignatureEdge(
-        userId,
-        method,
-        path,
-        timestamp
-      );
+      const result = extractHmacHeaders(headers, 'x-internal');
 
-      // Should not contain URL-unsafe characters
-      expect(signature).not.toMatch(/[\+\/=]/);
-      // Should only contain base64url characters
-      expect(signature).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(result).toEqual({
+        userId: 'user-123',
+        method: 'POST',
+        path: '/api/chat',
+        timestamp: 1234567890,
+        signature: 'abc123signature',
+      });
+    });
+
+    it('should extract all headers with x-service prefix', () => {
+      const headers = new Headers();
+      headers.set('x-service-user', 'service-user');
+      headers.set('x-service-ts', '9876543210');
+      headers.set('x-service-sig', 'xyz789signature');
+      headers.set('x-service-method', 'GET');
+      headers.set('x-service-path', '/api/test');
+
+      const result = extractHmacHeaders(headers, 'x-service');
+
+      expect(result).toEqual({
+        userId: 'service-user',
+        method: 'GET',
+        path: '/api/test',
+        timestamp: 9876543210,
+        signature: 'xyz789signature',
+      });
+    });
+
+    it('should return null when user header is missing', () => {
+      const headers = new Headers();
+      headers.set('x-internal-ts', '1234567890');
+      headers.set('x-internal-sig', 'signature');
+      headers.set('x-internal-method', 'POST');
+      headers.set('x-internal-path', '/api/chat');
+
+      const result = extractHmacHeaders(headers, 'x-internal');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when timestamp header is missing', () => {
+      const headers = new Headers();
+      headers.set('x-internal-user', 'user-123');
+      headers.set('x-internal-sig', 'signature');
+      headers.set('x-internal-method', 'POST');
+      headers.set('x-internal-path', '/api/chat');
+
+      const result = extractHmacHeaders(headers, 'x-internal');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when signature header is missing', () => {
+      const headers = new Headers();
+      headers.set('x-internal-user', 'user-123');
+      headers.set('x-internal-ts', '1234567890');
+      headers.set('x-internal-method', 'POST');
+      headers.set('x-internal-path', '/api/chat');
+
+      const result = extractHmacHeaders(headers, 'x-internal');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when method header is missing', () => {
+      const headers = new Headers();
+      headers.set('x-internal-user', 'user-123');
+      headers.set('x-internal-ts', '1234567890');
+      headers.set('x-internal-sig', 'signature');
+      headers.set('x-internal-path', '/api/chat');
+
+      const result = extractHmacHeaders(headers, 'x-internal');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when path header is missing', () => {
+      const headers = new Headers();
+      headers.set('x-internal-user', 'user-123');
+      headers.set('x-internal-ts', '1234567890');
+      headers.set('x-internal-sig', 'signature');
+      headers.set('x-internal-method', 'POST');
+
+      const result = extractHmacHeaders(headers, 'x-internal');
+
+      expect(result).toBeNull();
+    });
+
+    it('should parse timestamp as integer', () => {
+      const headers = new Headers();
+      headers.set('x-internal-user', 'user-123');
+      headers.set('x-internal-ts', '1234567890');
+      headers.set('x-internal-sig', 'signature');
+      headers.set('x-internal-method', 'POST');
+      headers.set('x-internal-path', '/api/chat');
+
+      const result = extractHmacHeaders(headers, 'x-internal');
+
+      expect(result?.timestamp).toBe(1234567890);
+      expect(typeof result?.timestamp).toBe('number');
     });
   });
 
-  describe('Error handling', () => {
-    it('should throw when INTERNAL_HEADER_SECRET is missing', async () => {
-      mockGetHmacSecret.mockReturnValue(undefined);
+  describe('stripInternalHeaders', () => {
+    it('should remove all x-internal headers', () => {
+      const headers = new Headers();
+      headers.set('x-internal-user', 'user-123');
+      headers.set('x-internal-ts', '1234567890');
+      headers.set('x-internal-sig', 'signature');
+      headers.set('x-internal-method', 'POST');
+      headers.set('x-internal-path', '/api/chat');
+      headers.set('authorization', 'Bearer token');
+      headers.set('content-type', 'application/json');
 
-      await expect(
-        createHmacSignatureEdge('user', 'GET', '/', 123)
-      ).rejects.toThrow(
-        'INTERNAL_HEADER_SECRET environment variable is required'
-      );
+      stripInternalHeaders(headers);
 
-      expect(() =>
-        verifyHmacSignatureNode('user', 'GET', '/', 123, 'sig')
-      ).toThrow('INTERNAL_HEADER_SECRET environment variable is required');
+      expect(headers.get('x-internal-user')).toBeNull();
+      expect(headers.get('x-internal-ts')).toBeNull();
+      expect(headers.get('x-internal-sig')).toBeNull();
+      expect(headers.get('x-internal-method')).toBeNull();
+      expect(headers.get('x-internal-path')).toBeNull();
+
+      // Should preserve other headers
+      expect(headers.get('authorization')).toBe('Bearer token');
+      expect(headers.get('content-type')).toBe('application/json');
+    });
+
+    it('should remove all x-service headers', () => {
+      const headers = new Headers();
+      headers.set('x-service-user', 'service-user');
+      headers.set('x-service-ts', '9876543210');
+      headers.set('x-service-sig', 'signature');
+      headers.set('x-service-method', 'GET');
+      headers.set('x-service-path', '/api/test');
+      headers.set('user-agent', 'test-agent');
+
+      stripInternalHeaders(headers);
+
+      expect(headers.get('x-service-user')).toBeNull();
+      expect(headers.get('x-service-ts')).toBeNull();
+      expect(headers.get('x-service-sig')).toBeNull();
+      expect(headers.get('x-service-method')).toBeNull();
+      expect(headers.get('x-service-path')).toBeNull();
+
+      // Should preserve other headers
+      expect(headers.get('user-agent')).toBe('test-agent');
+    });
+
+    it('should remove both x-internal and x-service headers', () => {
+      const headers = new Headers();
+      headers.set('x-internal-user', 'user-123');
+      headers.set('x-service-user', 'service-user');
+      headers.set('x-internal-sig', 'internal-sig');
+      headers.set('x-service-sig', 'service-sig');
+      headers.set('accept', 'application/json');
+
+      stripInternalHeaders(headers);
+
+      expect(headers.get('x-internal-user')).toBeNull();
+      expect(headers.get('x-service-user')).toBeNull();
+      expect(headers.get('x-internal-sig')).toBeNull();
+      expect(headers.get('x-service-sig')).toBeNull();
+
+      // Should preserve other headers
+      expect(headers.get('accept')).toBe('application/json');
+    });
+
+    it('should handle case-insensitive header names', () => {
+      const headers = new Headers();
+      headers.set('X-Internal-User', 'user-123');
+      headers.set('X-SERVICE-SIG', 'signature');
+      headers.set('Content-Type', 'application/json');
+
+      stripInternalHeaders(headers);
+
+      expect(headers.get('X-Internal-User')).toBeNull();
+      expect(headers.get('X-SERVICE-SIG')).toBeNull();
+
+      // Should preserve other headers
+      expect(headers.get('Content-Type')).toBe('application/json');
+    });
+
+    it('should not affect headers when no internal headers present', () => {
+      const headers = new Headers();
+      headers.set('authorization', 'Bearer token');
+      headers.set('content-type', 'application/json');
+      headers.set('user-agent', 'test-agent');
+
+      stripInternalHeaders(headers);
+
+      expect(headers.get('authorization')).toBe('Bearer token');
+      expect(headers.get('content-type')).toBe('application/json');
+      expect(headers.get('user-agent')).toBe('test-agent');
     });
   });
 });
