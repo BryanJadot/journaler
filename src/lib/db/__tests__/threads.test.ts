@@ -14,6 +14,11 @@ import {
   verifyThreadOwnership,
 } from '@/lib/db/threads';
 
+// Mock revalidateTag to prevent Next.js static generation errors in tests
+jest.mock('next/cache', () => ({
+  revalidateTag: jest.fn(),
+}));
+
 describe('Threads Service', () => {
   let testUserId: string;
   let otherUserId: string;

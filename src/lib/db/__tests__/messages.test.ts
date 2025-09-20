@@ -8,6 +8,11 @@ import { saveMessage } from '@/lib/db/messages';
 import { users, threads, messages } from '@/lib/db/schema';
 import { createThread } from '@/lib/db/threads';
 
+// Mock revalidateTag to prevent Next.js static generation errors in tests
+jest.mock('next/cache', () => ({
+  revalidateTag: jest.fn(),
+}));
+
 describe('Messages Service', () => {
   let testUserId: string;
   let otherUserId: string;
