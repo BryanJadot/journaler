@@ -1,6 +1,6 @@
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
-import { createThread, getMostRecentThread } from '@/lib/chat/service';
 import { getChatUrl } from '@/lib/chat/url-helpers';
+import { createThread, getMostRecentThread } from '@/lib/db/threads';
 
 /**
  * Server-side helper to get or create a chat URL for user redirection.

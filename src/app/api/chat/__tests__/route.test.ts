@@ -10,9 +10,16 @@ import { StreamingResponse } from '@/lib/chat/types/streaming';
 jest.mock('@/lib/auth/get-user-from-header');
 
 // Mock the chat service functions
-jest.mock('@/lib/chat/service', () => ({
-  saveMessage: jest.fn(),
+jest.mock('@/lib/db/threads', () => ({
   verifyThreadOwnership: jest.fn(),
+}));
+
+jest.mock('@/lib/db/messages', () => ({
+  saveMessage: jest.fn(),
+}));
+
+jest.mock('@/lib/internal/fire-and-forget', () => ({
+  fireAndForget: jest.fn(),
 }));
 
 // Mock the OpenAI client
@@ -31,13 +38,14 @@ const mockGetUserIdFromHeader =
   >;
 
 // Get mock chat service functions
-const chatService = jest.requireMock('@/lib/chat/service');
-const mockSaveMessage = chatService.saveMessage as jest.MockedFunction<
-  typeof chatService.saveMessage
+const threadsService = jest.requireMock('@/lib/db/threads');
+const messagesService = jest.requireMock('@/lib/db/messages');
+const mockSaveMessage = messagesService.saveMessage as jest.MockedFunction<
+  typeof messagesService.saveMessage
 >;
 const mockVerifyThreadOwnership =
-  chatService.verifyThreadOwnership as jest.MockedFunction<
-    typeof chatService.verifyThreadOwnership
+  threadsService.verifyThreadOwnership as jest.MockedFunction<
+    typeof threadsService.verifyThreadOwnership
   >;
 
 // Get mock streamOpenAITokens function
@@ -45,6 +53,13 @@ const streamOpenAITokensModule = jest.requireMock('../stream-openai-tokens');
 const mockStreamOpenAITokens =
   streamOpenAITokensModule.streamOpenAITokens as jest.MockedFunction<
     typeof streamOpenAITokensModule.streamOpenAITokens
+  >;
+
+// Get mock fire-and-forget function
+const fireAndForgetModule = jest.requireMock('@/lib/internal/fire-and-forget');
+const mockFireAndForget =
+  fireAndForgetModule.fireAndForget as jest.MockedFunction<
+    typeof fireAndForgetModule.fireAndForget
   >;
 
 /**
@@ -283,6 +298,9 @@ describe('/api/chat POST', () => {
       history,
       message
     );
+
+    // Should NOT trigger fire-and-forget auto-naming when history exists
+    expect(mockFireAndForget).not.toHaveBeenCalled();
   });
 
   it('should handle streamOpenAITokens errors and stream error response', async () => {
@@ -351,6 +369,19 @@ describe('/api/chat POST', () => {
       expect.any(Object),
       [],
       'Hello'
+    );
+
+    // Should trigger fire-and-forget auto-naming for first message
+    expect(mockFireAndForget).toHaveBeenCalledWith(
+      userId,
+      '/api/threads/auto-name',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          threadId: '550e8400-e29b-41d4-a716-446655440001',
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      }
     );
   });
 });

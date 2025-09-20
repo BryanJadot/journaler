@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { silenceConsoleWarnings } from '@/__tests__/helpers/console-helpers';
 import * as cookiesModule from '@/lib/auth/cookies';
 import * as hmacSecretModule from '@/lib/auth/hmac-secret';
+import { createHmacSignature } from '@/lib/auth/hmac-sign';
 import * as jwtModule from '@/lib/auth/jwt';
 import { middleware } from '@/middleware';
 
@@ -35,6 +37,8 @@ const mockGetHmacSecret = hmacSecretModule.getHmacSecret as jest.MockedFunction<
  * - Public route access: allows certain routes without authentication
  */
 describe('middleware', () => {
+  silenceConsoleWarnings();
+
   beforeEach(() => {
     // Clear all mock call history and reset mock implementations
     jest.clearAllMocks();
@@ -88,6 +92,33 @@ describe('middleware', () => {
       expect(headers!.get('x-internal-path')).toBeNull();
       // Verify legitimate headers remain untouched
       expect(headers!.get('other-header')).toBe('should-remain');
+    });
+
+    it('should strip all x-service-* headers from incoming requests', async () => {
+      const request = new NextRequest('http://localhost/login', {
+        headers: {
+          'x-service-user': 'malicious-service-user',
+          'x-service-sig': 'malicious-service-signature',
+          'x-service-ts': '123456789',
+          'x-service-method': 'malicious-method',
+          'x-service-path': 'malicious-path',
+          'content-type': 'application/json',
+        },
+      });
+
+      await middleware(request);
+
+      const callArgs = mockNext.mock.calls[0]?.[0];
+      const headers = callArgs!.request!.headers;
+
+      // All x-service-* headers must be stripped
+      expect(headers!.get('x-service-user')).toBeNull();
+      expect(headers!.get('x-service-sig')).toBeNull();
+      expect(headers!.get('x-service-ts')).toBeNull();
+      expect(headers!.get('x-service-method')).toBeNull();
+      expect(headers!.get('x-service-path')).toBeNull();
+      // Legitimate headers should remain
+      expect(headers!.get('content-type')).toBe('application/json');
     });
 
     it('should strip malicious x-internal-* headers and set HMAC-signed headers on protected routes', async () => {
@@ -347,6 +378,226 @@ describe('middleware', () => {
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toContain('/login');
       expect(mockVerifyAuthToken).toHaveBeenCalled();
+    });
+  });
+
+  describe('service-to-service authentication', () => {
+    async function createValidServiceHeaders(
+      userId: string,
+      method: string,
+      path: string
+    ) {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const signature = await createHmacSignature({
+        userId,
+        method,
+        path,
+        timestamp,
+      });
+
+      return {
+        'x-service-user': userId,
+        'x-service-method': method,
+        'x-service-path': path,
+        'x-service-ts': timestamp.toString(),
+        'x-service-sig': signature,
+      };
+    }
+
+    it('should authenticate valid service-to-service requests', async () => {
+      const serviceUserId = 'service-user-123';
+      const method = 'POST';
+      const path = '/api/chat';
+
+      const headers = await createValidServiceHeaders(
+        serviceUserId,
+        method,
+        path
+      );
+      const request = new NextRequest(`http://localhost${path}`, {
+        method,
+        headers,
+      });
+
+      const response = await middleware(request);
+
+      expect(response).toBeDefined();
+      expect(mockGetAuthToken).not.toHaveBeenCalled(); // Service auth should skip JWT check
+
+      // Verify NextResponse.next was called with internal headers
+      expect(mockNext).toHaveBeenCalledWith({
+        request: {
+          headers: expect.any(Headers),
+        },
+      });
+
+      const callArgs = mockNext.mock.calls[0]?.[0];
+      const responseHeaders = callArgs!.request!.headers;
+
+      // Service headers should be stripped and replaced with internal headers
+      expect(responseHeaders!.get('x-service-user')).toBeNull();
+      expect(responseHeaders!.get('x-service-sig')).toBeNull();
+      expect(responseHeaders!.get('x-service-ts')).toBeNull();
+      expect(responseHeaders!.get('x-service-method')).toBeNull();
+      expect(responseHeaders!.get('x-service-path')).toBeNull();
+
+      // Should have internal headers for the service user
+      expect(responseHeaders!.get('x-internal-user')).toBe(serviceUserId);
+      expect(responseHeaders!.get('x-internal-method')).toBe(method);
+      expect(responseHeaders!.get('x-internal-path')).toBe(path);
+      expect(responseHeaders!.get('x-internal-ts')).toBeDefined();
+      expect(responseHeaders!.get('x-internal-sig')).toBeDefined();
+    });
+
+    it('should fallback to user session auth when service auth fails', async () => {
+      const userId = 'user-123';
+      const invalidHeaders = {
+        'x-service-user': 'service-user',
+        'x-service-method': 'POST',
+        'x-service-path': '/api/chat',
+        'x-service-ts': '123456789',
+        'x-service-sig': 'invalid-signature',
+      };
+
+      const request = new NextRequest('http://localhost/api/chat', {
+        method: 'POST',
+        headers: invalidHeaders,
+      });
+
+      // Mock user session auth success
+      mockGetAuthToken.mockResolvedValue('valid-user-token');
+      mockVerifyAuthToken.mockResolvedValue({
+        success: true,
+        payload: { userId, username: 'testuser' },
+      });
+
+      const response = await middleware(request);
+
+      expect(response).toBeDefined();
+      // Should have fallen back to user session auth
+      expect(mockGetAuthToken).toHaveBeenCalled();
+      expect(mockVerifyAuthToken).toHaveBeenCalled();
+
+      const callArgs = mockNext.mock.calls[0]?.[0];
+      const responseHeaders = callArgs!.request!.headers;
+
+      // Should have internal headers for the user (not service user)
+      expect(responseHeaders!.get('x-internal-user')).toBe(userId);
+    });
+
+    it('should reject service requests with invalid signature', async () => {
+      const invalidHeaders = {
+        'x-service-user': 'service-user',
+        'x-service-method': 'POST',
+        'x-service-path': '/api/chat',
+        'x-service-ts': Math.floor(Date.now() / 1000).toString(),
+        'x-service-sig': 'completely-invalid-signature',
+      };
+
+      const request = new NextRequest('http://localhost/api/chat', {
+        method: 'POST',
+        headers: invalidHeaders,
+      });
+
+      // No user session fallback
+      mockGetAuthToken.mockResolvedValue(undefined);
+
+      const response = await middleware(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toContain('/login');
+    });
+
+    it('should reject service requests with missing headers', async () => {
+      const incompleteHeaders = {
+        'x-service-user': 'service-user',
+        'x-service-method': 'POST',
+        // Missing x-service-path, x-service-ts, x-service-sig
+      };
+
+      const request = new NextRequest('http://localhost/api/chat', {
+        method: 'POST',
+        headers: incompleteHeaders,
+      });
+
+      // No user session fallback
+      mockGetAuthToken.mockResolvedValue(undefined);
+
+      const response = await middleware(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toContain('/login');
+    });
+
+    it('should handle service auth on different HTTP methods', async () => {
+      const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+
+      for (const method of methods) {
+        jest.clearAllMocks();
+
+        const serviceUserId = 'service-user-456';
+        const path = '/api/test';
+        const headers = await createValidServiceHeaders(
+          serviceUserId,
+          method,
+          path
+        );
+
+        const request = new NextRequest(`http://localhost${path}`, {
+          method,
+          headers,
+        });
+
+        const response = await middleware(request);
+
+        expect(response).toBeDefined();
+        expect(mockGetAuthToken).not.toHaveBeenCalled();
+
+        const callArgs = mockNext.mock.calls[0]?.[0];
+        const responseHeaders = callArgs!.request!.headers;
+
+        expect(responseHeaders!.get('x-internal-user')).toBe(serviceUserId);
+        expect(responseHeaders!.get('x-internal-method')).toBe(method);
+        expect(responseHeaders!.get('x-internal-path')).toBe(path);
+      }
+    });
+
+    it('should prioritize service auth over user session when both are present', async () => {
+      const serviceUserId = 'service-user-123';
+      const userUserId = 'user-456';
+      const method = 'POST';
+      const path = '/api/chat';
+
+      const headers = await createValidServiceHeaders(
+        serviceUserId,
+        method,
+        path
+      );
+
+      const request = new NextRequest(`http://localhost${path}`, {
+        method,
+        headers,
+      });
+
+      // Setup user session auth that would also succeed
+      mockGetAuthToken.mockResolvedValue('valid-user-token');
+      mockVerifyAuthToken.mockResolvedValue({
+        success: true,
+        payload: { userId: userUserId, username: 'testuser' },
+      });
+
+      const response = await middleware(request);
+
+      expect(response).toBeDefined();
+      // Service auth should take priority - user auth shouldn't be called
+      expect(mockGetAuthToken).not.toHaveBeenCalled();
+      expect(mockVerifyAuthToken).not.toHaveBeenCalled();
+
+      const callArgs = mockNext.mock.calls[0]?.[0];
+      const responseHeaders = callArgs!.request!.headers;
+
+      // Should use service user ID, not user session ID
+      expect(responseHeaders!.get('x-internal-user')).toBe(serviceUserId);
     });
   });
 });

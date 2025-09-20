@@ -3,7 +3,7 @@ import { unstable_cache } from 'next/cache';
 import {
   getUserThreadsCacheTag,
   getCachedThreadSummaries,
-} from '@/lib/chat/service';
+} from '@/lib/db/threads';
 
 // Mock the dependencies
 jest.mock('next/cache');

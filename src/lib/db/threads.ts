@@ -1,9 +1,25 @@
 import { eq, desc } from 'drizzle-orm';
-import { unstable_cache } from 'next/cache';
+import { unstable_cache, revalidateTag } from 'next/cache';
 
-import type { Role, OutputType, ThreadSummary } from '@/lib/chat/types';
+import type { ThreadSummary } from '@/lib/chat/types';
 import { db } from '@/lib/db';
 import { threads, messages } from '@/lib/db/schema';
+
+/**
+ * Thread data with first user message for auto-naming.
+ */
+export interface ThreadWithFirstMessage {
+  thread: {
+    id: string;
+    name: string;
+    userId: string;
+    updatedAt: Date;
+  };
+  firstMessage: {
+    content: string;
+    role: string;
+  } | null;
+}
 
 /**
  * Creates a new chat thread for a user.
@@ -33,6 +49,10 @@ export async function createThread(userId: string, name: string) {
       updatedAt: new Date(),
     })
     .returning();
+
+  // Invalidate user's thread cache to refresh sidebar
+  const cacheTag = getUserThreadsCacheTag(userId);
+  revalidateTag(cacheTag);
 
   return thread;
 }
@@ -253,69 +273,56 @@ export async function verifyThreadOwnership(
 }
 
 /**
- * Saves a new message to a chat thread and updates the thread's timestamp.
+ * Retrieves a thread with its first user message for auto-naming.
  *
- * This function performs a transactional operation to ensure data consistency:
- * 1. Creates a new message record in the specified thread
- * 2. Updates the parent thread's updatedAt timestamp to reflect recent activity
- *
- * The transaction ensures that both operations succeed or fail together,
- * preventing orphaned messages or stale thread timestamps.
- *
- * @param threadId - The unique identifier of the thread to add the message to
- * @param role - The role of the message sender ('user', 'assistant', or 'developer')
- * @param content - The text content of the message
- * @param outputType - The format type of the message content
- *   (defaults to 'text' for standard text messages)
- * @returns A promise that resolves to the newly created message object
- *
- * @example
- * ```typescript
- * // Save a user message
- * const userMessage = await saveMessage(
- *   'thread123',
- *   'user',
- *   'Hello, how can you help me?'
- * );
- *
- * // Save an assistant response with specific output type
- * const assistantMessage = await saveMessage(
- *   'thread123',
- *   'assistant',
- *   'I can help you with various tasks...',
- *   'markdown'
- * );
- * ```
- *
- * @throws {Error} Database transaction error if either message creation or thread update fails
+ * @param threadId - The thread ID to look up
+ * @returns Thread data with first message or null if not found
  */
-export async function saveMessage(
+export async function getThreadWithFirstMessage(
+  threadId: string
+): Promise<ThreadWithFirstMessage | null> {
+  const threadWithMessages = await db
+    .select({
+      thread: threads,
+      firstMessage: {
+        content: messages.content,
+        role: messages.role,
+      },
+    })
+    .from(threads)
+    .leftJoin(messages, eq(messages.threadId, threads.id))
+    .where(eq(threads.id, threadId))
+    .orderBy(messages.createdAt)
+    .limit(1);
+
+  if (threadWithMessages.length === 0) {
+    return null;
+  }
+
+  return threadWithMessages[0];
+}
+
+/**
+ * Updates a thread's name in the database and invalidates cache.
+ *
+ * @param threadId - The thread ID to update
+ * @param newName - The new name to set
+ * @param userId - The user ID for cache invalidation
+ */
+export async function updateThreadName(
   threadId: string,
-  role: Role,
-  content: string,
-  outputType: OutputType = 'text'
-) {
-  // Use transaction to ensure consistency between message creation and thread update
-  return await db.transaction(async (tx) => {
-    // Save the message with current timestamp
-    const [message] = await tx
-      .insert(messages)
-      .values({
-        threadId,
-        role,
-        content,
-        outputType,
-        createdAt: new Date(),
-      })
-      .returning();
+  newName: string,
+  userId: string
+): Promise<void> {
+  await db
+    .update(threads)
+    .set({
+      name: newName,
+      updatedAt: new Date(),
+    })
+    .where(eq(threads.id, threadId));
 
-    // Update thread's updatedAt timestamp to reflect recent activity
-    // This ensures the thread appears at the top of recent threads lists
-    await tx
-      .update(threads)
-      .set({ updatedAt: new Date() })
-      .where(eq(threads.id, threadId));
-
-    return message;
-  });
+  // Invalidate user's thread cache to refresh sidebar
+  const cacheTag = getUserThreadsCacheTag(userId);
+  revalidateTag(cacheTag);
 }

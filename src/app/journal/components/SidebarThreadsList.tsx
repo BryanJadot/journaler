@@ -32,10 +32,10 @@ export function SidebarThreadsList({ threads }: { threads: ThreadSummary[] }) {
     <ul className="menu w-full">
       {/* Map through threads and create navigation links */}
       {threads.map((thread) => (
-        <li key={thread.id}>
+        <li key={thread.id} className="w-full">
           <Link
             href={getChatUrl(thread.id)}
-            className={clsx('w-full', {
+            className={clsx('w-full truncate block', {
               'menu-active': thread.id === currentThreadId,
             })}
             title={thread.name} // Tooltip shows full name for truncated text

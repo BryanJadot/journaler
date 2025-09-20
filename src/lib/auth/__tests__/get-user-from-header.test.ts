@@ -2,15 +2,20 @@ import { headers } from 'next/headers';
 
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
 import * as hmacSecretModule from '@/lib/auth/hmac-secret';
-import { createHmacSignature } from '@/middleware';
+import { createHmacSignature } from '@/lib/auth/hmac-sign';
+import { verifyHmacSignature } from '@/lib/auth/hmac-verify';
 
 // Mock Next.js headers function and HMAC secret to control test scenarios
 jest.mock('next/headers');
 jest.mock('../hmac-secret');
+jest.mock('../hmac-verify');
 
 const mockHeaders = headers as jest.MockedFunction<typeof headers>;
 const mockGetHmacSecret = hmacSecretModule.getHmacSecret as jest.MockedFunction<
   typeof hmacSecretModule.getHmacSecret
+>;
+const mockVerifyHmacSignature = verifyHmacSignature as jest.MockedFunction<
+  typeof verifyHmacSignature
 >;
 
 /**
@@ -27,6 +32,7 @@ describe('getUserIdFromHeader', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetHmacSecret.mockReturnValue('test-secret-for-header-tests');
+    mockVerifyHmacSignature.mockResolvedValue(true);
   });
 
   it('should return user ID when valid HMAC-signed headers are present', async () => {
@@ -34,12 +40,12 @@ describe('getUserIdFromHeader', () => {
     const method = 'POST';
     const path = '/api/chat';
     const timestamp = Math.floor(Date.now() / 1000);
-    const signature = await createHmacSignature(
+    const signature = await createHmacSignature({
       userId,
       method,
       path,
-      timestamp
-    );
+      timestamp,
+    });
 
     const mockHeadersList = {
       get: jest.fn((key: string) => {
@@ -90,7 +96,7 @@ describe('getUserIdFromHeader', () => {
     );
 
     await expect(getUserIdFromHeader()).rejects.toThrow(
-      'Invalid timestamp in internal headers.'
+      'Missing required internal headers. Authentication required.'
     );
   });
 
@@ -100,12 +106,12 @@ describe('getUserIdFromHeader', () => {
     const path = '/api/chat';
     // Create timestamp that exceeds MAX_TIMESTAMP_AGE (120 seconds)
     const oldTimestamp = Math.floor(Date.now() / 1000) - 300; // 5 minutes ago
-    const signature = await createHmacSignature(
+    const signature = await createHmacSignature({
       userId,
       method,
       path,
-      oldTimestamp
-    );
+      timestamp: oldTimestamp,
+    });
 
     const mockHeadersList = {
       get: jest.fn((key: string) => {
@@ -120,9 +126,11 @@ describe('getUserIdFromHeader', () => {
     mockHeaders.mockResolvedValue(
       mockHeadersList as unknown as Awaited<ReturnType<typeof headers>>
     );
+    // Mock signature verification to fail for old timestamp
+    mockVerifyHmacSignature.mockResolvedValue(false);
 
     await expect(getUserIdFromHeader()).rejects.toThrow(
-      'Request timestamp too old:'
+      'Invalid HMAC signature. Headers may have been tampered with.'
     );
   });
 
@@ -147,6 +155,8 @@ describe('getUserIdFromHeader', () => {
     mockHeaders.mockResolvedValue(
       mockHeadersList as unknown as Awaited<ReturnType<typeof headers>>
     );
+    // Mock signature verification to fail for invalid signature
+    mockVerifyHmacSignature.mockResolvedValue(false);
 
     await expect(getUserIdFromHeader()).rejects.toThrow(
       'Invalid HMAC signature. Headers may have been tampered with.'
@@ -172,7 +182,7 @@ describe('getUserIdFromHeader', () => {
     );
 
     await expect(getUserIdFromHeader()).rejects.toThrow(
-      'Missing request method or path headers.'
+      'Missing required internal headers. Authentication required.'
     );
   });
 
@@ -189,12 +199,12 @@ describe('getUserIdFromHeader', () => {
       const method = 'GET';
       const path = '/api/test';
       const timestamp = Math.floor(Date.now() / 1000);
-      const signature = await createHmacSignature(
+      const signature = await createHmacSignature({
         userId,
         method,
         path,
-        timestamp
-      );
+        timestamp,
+      });
 
       const mockHeadersList = {
         get: jest.fn((key: string) => {
@@ -235,6 +245,10 @@ describe('getUserIdFromHeader', () => {
     };
     mockHeaders.mockResolvedValue(
       mockHeadersList as unknown as Awaited<ReturnType<typeof headers>>
+    );
+    // Mock signature verification to throw error for missing secret
+    mockVerifyHmacSignature.mockRejectedValue(
+      new Error('INTERNAL_HEADER_SECRET environment variable is required')
     );
 
     await expect(getUserIdFromHeader()).rejects.toThrow(

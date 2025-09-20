@@ -1,19 +1,21 @@
-export function silenceConsoleErrors() {
-  const originalError = console.error;
+function createConsoleSilencer(method: 'error' | 'warn') {
+  const original = console[method];
 
   beforeAll(() => {
-    console.error = jest.fn();
+    console[method] = jest.fn();
   });
 
   afterAll(() => {
-    console.error = originalError;
+    console[method] = original;
   });
 
+  const capitalizedMethod = method.charAt(0).toUpperCase() + method.slice(1);
+
   return {
-    expectConsoleError: (matcher?: string | RegExp) => {
-      expect(console.error).toHaveBeenCalled();
+    [`expectConsole${capitalizedMethod}`]: (matcher?: string | RegExp) => {
+      expect(console[method]).toHaveBeenCalled();
       if (matcher) {
-        const calls = (console.error as jest.Mock).mock.calls;
+        const calls = (console[method] as jest.Mock).mock.calls;
         const found = calls.some((args) => {
           const message = args.join(' ');
           return typeof matcher === 'string'
@@ -23,8 +25,38 @@ export function silenceConsoleErrors() {
         expect(found).toBeTruthy();
       }
     },
-    getConsoleErrors: () => (console.error as jest.Mock).mock.calls,
-    clearConsoleErrors: () => (console.error as jest.Mock).mockClear(),
+    [`getConsole${capitalizedMethod}s`]: () =>
+      (console[method] as jest.Mock).mock.calls,
+    [`clearConsole${capitalizedMethod}s`]: () =>
+      (console[method] as jest.Mock).mockClear(),
+  };
+}
+
+export function silenceConsoleErrors() {
+  const helpers = createConsoleSilencer('error');
+  return {
+    expectConsoleError: helpers.expectConsoleError,
+    getConsoleErrors: helpers.getConsoleErrors,
+    clearConsoleErrors: helpers.clearConsoleErrors,
+  };
+}
+
+export function silenceConsoleWarnings() {
+  const helpers = createConsoleSilencer('warn');
+  return {
+    expectConsoleWarn: helpers.expectConsoleWarn,
+    getConsoleWarns: helpers.getConsoleWarns,
+    clearConsoleWarns: helpers.clearConsoleWarns,
+  };
+}
+
+export function silenceConsole() {
+  const errorHelpers = silenceConsoleErrors();
+  const warningHelpers = silenceConsoleWarnings();
+
+  return {
+    ...errorHelpers,
+    ...warningHelpers,
   };
 }
 
