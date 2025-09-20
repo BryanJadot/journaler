@@ -16,10 +16,13 @@ const globalSetup = async () => {
   const branchName = `test-${timestamp}-${randomId}`;
 
   try {
-    // Create new blank branch (no parent data)
-    console.log(`📋 Creating blank test branch: ${branchName}`);
+    // Create new blank branch (no parent data) with 5 minute expiration
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    console.log(
+      `📋 Creating blank test branch: ${branchName} (expires at ${expiresAt})`
+    );
     await execAsync(
-      `npx neonctl branches create --name ${branchName} --project-id ${process.env.NEON_PROJECT_ID}`
+      `npx neonctl branches create --name ${branchName} --project-id ${process.env.NEON_PROJECT_ID} --expires-at "${expiresAt}"`
     );
 
     // Get the connection string for the new branch
