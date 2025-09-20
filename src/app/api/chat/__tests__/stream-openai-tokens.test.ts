@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import OpenAI from 'openai';
 
-import { streamOpenAITokens } from '@/app/api/chat/stream-openai-tokens';
+import {
+  streamOpenAITokens,
+  THERAPY_ASSISTANT_INSTRUCTIONS,
+} from '@/app/api/chat/stream-openai-tokens';
 import { ChatMessage } from '@/lib/chat/types';
 
 describe('streamOpenAITokens', () => {
@@ -58,8 +61,9 @@ describe('streamOpenAITokens', () => {
         { role: 'assistant', content: 'Hi there!' },
         { role: 'user', content: 'How are you?' },
       ],
-      instructions:
-        'You are a helpful assistant that always outputs responses in valid Markdown. Every response must be valid Markdown and render correctly. Prefer structured elements such as headings (##), bullet points, numbered lists, bold, italics, links, and fenced code blocks. Do not use plain text formatting unless Markdown cannot express it.',
+      temperature: 0.7,
+      top_p: 0.9,
+      instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
 
@@ -121,8 +125,9 @@ describe('streamOpenAITokens', () => {
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
       model: 'gpt-5-mini',
       input: [{ role: 'user', content: 'First message' }],
-      instructions:
-        'You are a helpful assistant that always outputs responses in valid Markdown. Every response must be valid Markdown and render correctly. Prefer structured elements such as headings (##), bullet points, numbered lists, bold, italics, links, and fenced code blocks. Do not use plain text formatting unless Markdown cannot express it.',
+      temperature: 0.7,
+      top_p: 0.9,
+      instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
 
@@ -266,8 +271,9 @@ describe('streamOpenAITokens', () => {
         { role: 'assistant', content: 'Hello!' },
         { role: 'user', content: 'How can you help?' },
       ],
-      instructions:
-        'You are a helpful assistant that always outputs responses in valid Markdown. Every response must be valid Markdown and render correctly. Prefer structured elements such as headings (##), bullet points, numbered lists, bold, italics, links, and fenced code blocks. Do not use plain text formatting unless Markdown cannot express it.',
+      temperature: 0.7,
+      top_p: 0.9,
+      instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
 
@@ -296,8 +302,9 @@ describe('streamOpenAITokens', () => {
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
       model: 'gpt-5-mini',
       input: [{ role: 'user', content: 'Test message' }],
-      instructions:
-        'You are a helpful assistant that always outputs responses in valid Markdown. Every response must be valid Markdown and render correctly. Prefer structured elements such as headings (##), bullet points, numbered lists, bold, italics, links, and fenced code blocks. Do not use plain text formatting unless Markdown cannot express it.',
+      temperature: 0.7,
+      top_p: 0.9,
+      instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
     expect(results).toEqual(['Test']);
   });
