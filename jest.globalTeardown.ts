@@ -7,32 +7,24 @@ require('tsconfig-paths').register({
   },
 });
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
 import { pool } from '@/lib/db';
 
-const execAsync = promisify(exec);
-
 const globalTeardown = async () => {
-  if (!process.env.TEST_BRANCH_NAME) {
-    console.log('⚠️  No test branch to clean up');
-    return;
-  }
-
   try {
-    // Close database connections BEFORE deleting the branch
+    // Close database connections
     console.log('🔌 Closing database connections...');
     await pool.end();
+    console.log('✅ Database connections closed');
 
-    console.log(`🧹 Cleaning up test branch: ${process.env.TEST_BRANCH_NAME}`);
-    await execAsync(
-      `npx neonctl branches delete ${process.env.TEST_BRANCH_NAME} --project-id ${process.env.NEON_PROJECT_ID}`
-    );
-    console.log('✅ Test branch deleted successfully');
+    // Branch will auto-expire in 3 minutes, no need to manually delete
+    if (process.env.TEST_BRANCH_NAME) {
+      console.log(
+        `ℹ️  Test branch ${process.env.TEST_BRANCH_NAME} will auto-expire in 3 minutes`
+      );
+    }
   } catch (error) {
     console.error(
-      '❌ Failed to delete test branch:',
+      '❌ Failed to close database connections:',
       error instanceof Error ? error.message : String(error)
     );
   }

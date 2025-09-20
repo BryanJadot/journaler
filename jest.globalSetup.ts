@@ -3,12 +3,12 @@ import { promisify } from 'util';
 
 import { config } from 'dotenv';
 
-config({ path: '.env.local' });
+config({ path: '.env.local', quiet: true });
 
 const execAsync = promisify(exec);
 
 const globalSetup = async () => {
-  console.log('🔧 Setting up test environment...');
+  console.log('\n🔧 Setting up test environment...');
 
   // Generate unique branch name for this test run
   const timestamp = Date.now();
@@ -16,8 +16,8 @@ const globalSetup = async () => {
   const branchName = `test-${timestamp}-${randomId}`;
 
   try {
-    // Create new blank branch (no parent data) with 5 minute expiration
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    // Create new blank branch (no parent data) with 3 minute expiration
+    const expiresAt = new Date(Date.now() + 3 * 60 * 1000).toISOString();
     console.log(
       `📋 Creating blank test branch: ${branchName} (expires at ${expiresAt})`
     );
