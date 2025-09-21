@@ -55,14 +55,14 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5',
+      model: 'gpt-5-chat-latest',
+      temperature: 0.7,
+      top_p: 0.9,
       input: [
         { role: 'user', content: 'Hello' },
         { role: 'assistant', content: 'Hi there!' },
         { role: 'user', content: 'How are you?' },
       ],
-      reasoning: { effort: 'medium' },
-      text: { verbosity: 'medium' },
       instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
@@ -123,10 +123,10 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5',
+      model: 'gpt-5-chat-latest',
+      temperature: 0.7,
+      top_p: 0.9,
       input: [{ role: 'user', content: 'First message' }],
-      reasoning: { effort: 'medium' },
-      text: { verbosity: 'medium' },
       instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
@@ -264,15 +264,15 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5',
+      model: 'gpt-5-chat-latest',
+      temperature: 0.7,
+      top_p: 0.9,
       input: [
         { role: 'system', content: 'You are helpful' },
         { role: 'user', content: 'Hi' },
         { role: 'assistant', content: 'Hello!' },
         { role: 'user', content: 'How can you help?' },
       ],
-      reasoning: { effort: 'medium' },
-      text: { verbosity: 'medium' },
       instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
@@ -300,10 +300,10 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5',
+      model: 'gpt-5-chat-latest',
+      temperature: 0.7,
+      top_p: 0.9,
       input: [{ role: 'user', content: 'Test message' }],
-      reasoning: { effort: 'medium' },
-      text: { verbosity: 'medium' },
       instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
     expect(results).toEqual(['Test']);
