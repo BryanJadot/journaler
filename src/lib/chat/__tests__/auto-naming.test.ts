@@ -233,6 +233,12 @@ describe('Auto-naming Service', () => {
         ],
         instructions:
           'Generate a concise, descriptive title for a conversation that starts with this user message. The title should capture the main topic or intent. Maximum 50 characters. Return only the title, no quotes or extra formatting.',
+        reasoning: {
+          effort: 'minimal',
+        },
+        text: {
+          verbosity: 'low',
+        },
       });
     });
 
