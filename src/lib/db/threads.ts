@@ -197,6 +197,32 @@ export async function getMostRecentThread(userId: string) {
 }
 
 /**
+ * Retrieves a thread by its ID without any related data.
+ *
+ * This function performs a lightweight query to fetch only the thread data
+ * without joining messages or other related entities. Ideal for operations
+ * that only need thread metadata like name checks or status updates.
+ *
+ * @param threadId - The unique identifier of the thread to retrieve
+ * @returns A promise that resolves to the thread or undefined if not found
+ *
+ * @example
+ * ```typescript
+ * const thread = await getThreadById('thread123');
+ * if (thread) {
+ *   console.log(`Thread name: ${thread.name}`);
+ * }
+ * ```
+ *
+ * @throws {Error} Database error if query fails
+ */
+export async function getThreadById(threadId: string) {
+  return db.query.threads.findFirst({
+    where: eq(threads.id, threadId),
+  });
+}
+
+/**
  * Retrieves a specific thread by ID along with all its messages.
  *
  * This function fetches a complete thread record including all associated

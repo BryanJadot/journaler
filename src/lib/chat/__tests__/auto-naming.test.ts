@@ -234,7 +234,7 @@ describe('Auto-naming Service', () => {
         instructions:
           'Generate a concise, descriptive title for a conversation that starts with this user message. The title should capture the main topic or intent. Maximum 50 characters. Return only the title, no quotes or extra formatting.',
         reasoning: {
-          effort: 'minimal',
+          effort: 'low',
         },
         text: {
           verbosity: 'low',
@@ -319,29 +319,29 @@ describe('Auto-naming Service', () => {
       );
     });
 
-    it('should throw error when generated name exceeds 50 characters', async () => {
-      const longName = 'x'.repeat(51);
+    it('should throw error when generated name exceeds 100 characters', async () => {
+      const longName = 'x'.repeat(101);
       const mockResponse = {
         output_text: longName,
       };
       mockCreate.mockResolvedValue(mockResponse);
 
       await expect(generateThreadName('Test message')).rejects.toThrow(
-        `Generated name exceeds 50 characters: "${longName}"`
+        `Generated name exceeds 100 characters: "${longName}"`
       );
     });
 
-    it('should accept generated name exactly at 50 characters', async () => {
-      const exactlyFiftyChars = 'x'.repeat(50);
+    it('should accept generated name exactly at 100 characters', async () => {
+      const exactlyHundredChars = 'x'.repeat(100);
       const mockResponse = {
-        output_text: exactlyFiftyChars,
+        output_text: exactlyHundredChars,
       };
       mockCreate.mockResolvedValue(mockResponse);
 
       const result = await generateThreadName('Test message');
 
-      expect(result).toBe(exactlyFiftyChars);
-      expect(result.length).toBe(50);
+      expect(result).toBe(exactlyHundredChars);
+      expect(result.length).toBe(100);
     });
 
     it('should handle OpenAI API errors', async () => {

@@ -46,9 +46,14 @@ export function validateThreadForAutoNaming(
 /**
  * Generates a thread name using OpenAI Responses API based on the first user message.
  *
+ * This function asks OpenAI to generate names up to 50 characters (the target length)
+ * but allows names up to 100 characters in validation (providing a buffer in case
+ * OpenAI occasionally exceeds the target). This gives clear guidance while maintaining
+ * flexibility.
+ *
  * @param firstMessage - The first user message content
- * @returns Generated thread name
- * @throws Error if OpenAI call fails
+ * @returns Generated thread name (target: ≤50 chars, allowed: ≤100 chars)
+ * @throws Error if OpenAI call fails or name exceeds 100 characters
  */
 export async function generateThreadName(
   firstMessage: string
@@ -67,7 +72,7 @@ export async function generateThreadName(
   const response = await openai.responses.create({
     model: 'gpt-5-mini',
     input,
-    reasoning: { effort: 'minimal' },
+    reasoning: { effort: 'low' },
     text: { verbosity: 'low' },
     instructions:
       'Generate a concise, descriptive title for a conversation that starts with this user message. The title should capture the main topic or intent. Maximum 50 characters. Return only the title, no quotes or extra formatting.',
@@ -79,9 +84,12 @@ export async function generateThreadName(
     throw new Error('OpenAI returned empty response');
   }
 
-  // Validate length constraint - fail hard if OpenAI doesn't follow instructions
-  if (generatedName.length > 50) {
-    throw new Error(`Generated name exceeds 50 characters: "${generatedName}"`);
+  // Validate length constraint: Target is 50 chars, but allow up to 100 chars as buffer
+  // Only fail if OpenAI significantly exceeds expectations (over 100 chars)
+  if (generatedName.length > 100) {
+    throw new Error(
+      `Generated name exceeds 100 characters: "${generatedName}"`
+    );
   }
 
   return generatedName;

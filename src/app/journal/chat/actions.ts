@@ -8,6 +8,7 @@ import { getChatUrl } from '@/lib/chat/url-helpers';
 import {
   createThread,
   deleteThread,
+  getThreadById,
   verifyThreadOwnership,
 } from '@/lib/db/threads';
 
@@ -85,4 +86,62 @@ export async function deleteThreadAction(threadId: string) {
   await deleteThread(threadId, userId);
 
   return { success: true };
+}
+
+/**
+ * Server action that retrieves the current name of a thread.
+ *
+ * Used for polling thread name updates after auto-naming occurs in the background.
+ * Only returns the thread name if the user owns the thread.
+ *
+ * @param threadId The UUID of the thread to get the name for
+ * @returns Promise resolving to an object with success status and thread name or error
+ *
+ * @example
+ * ```typescript
+ * const result = await getThreadNameAction(threadId);
+ * if (result.success && result.name !== DEFAULT_THREAD_NAME) {
+ *   // Thread has been renamed, refresh the UI
+ *   router.refresh();
+ * }
+ * ```
+ */
+export async function getThreadNameAction(
+  threadId: string
+): Promise<
+  { success: true; name: string } | { success: false; error: string }
+> {
+  try {
+    const userId = await getUserIdFromHeader();
+
+    // Verify ownership before returning thread data
+    const isOwner = await verifyThreadOwnership(threadId, userId);
+    if (!isOwner) {
+      return {
+        success: false,
+        error: 'Thread not found or access denied',
+      };
+    }
+
+    // Get the thread to retrieve its current name
+    const thread = await getThreadById(threadId);
+
+    if (!thread) {
+      return {
+        success: false,
+        error: 'Thread not found',
+      };
+    }
+
+    return {
+      success: true,
+      name: thread.name,
+    };
+  } catch (error) {
+    console.error('Error getting thread name:', error);
+    return {
+      success: false,
+      error: 'Failed to retrieve thread name',
+    };
+  }
 }
