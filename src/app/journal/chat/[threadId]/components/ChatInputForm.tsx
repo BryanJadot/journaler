@@ -1,9 +1,74 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 import { useStreamingChat } from '@/lib/chat/hooks/useStreamingChat';
 import { useThreadNamePolling } from '@/lib/chat/hooks/useThreadNamePolling';
+
+interface ChatTextareaProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+}
+
+function ChatTextarea({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  onKeyDown,
+}: ChatTextareaProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [value]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Check if the event target is an input, textarea, or contenteditable element
+      const target = e.target as HTMLElement;
+      const isInputElement =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.contentEditable === 'true';
+
+      // If not typing in another input and it's a printable character
+      if (
+        !isInputElement &&
+        textareaRef.current &&
+        e.key.length === 1 &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey
+      ) {
+        textareaRef.current.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={onKeyDown}
+      placeholder={placeholder}
+      disabled={disabled}
+      className="textarea textarea-primary w-full text-md min-h-[2.5rem] py-2 overflow-hidden"
+      style={{ resize: 'none' }}
+      rows={1}
+    />
+  );
+}
 
 /**
  * Props for the ChatInputForm component
@@ -72,14 +137,24 @@ export default function ChatInputForm({ onMessageSent }: ChatInputFormProps) {
     onMessageSent?.();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const form = e.currentTarget.closest('form');
+      if (form) {
+        form.requestSubmit();
+      }
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-row pb-1 px-3">
-      <input
+    <form onSubmit={handleSubmit} className="pb-1 px-3">
+      <ChatTextarea
         value={input}
         placeholder="Send a message..."
-        onChange={(e) => setInput(e.target.value)}
-        className="input input-primary flex-1 text-md"
+        onChange={setInput}
         disabled={status === 'loading'}
+        onKeyDown={handleKeyDown}
       />
     </form>
   );
