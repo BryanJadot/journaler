@@ -1,5 +1,6 @@
 import { eq, desc } from 'drizzle-orm';
 import { unstable_cache, revalidateTag } from 'next/cache';
+import { validate as isValidUUID } from 'uuid';
 
 import type { ThreadSummary } from '@/lib/chat/types';
 import { db } from '@/lib/db';
@@ -321,6 +322,58 @@ export async function updateThreadName(
       updatedAt: new Date(),
     })
     .where(eq(threads.id, threadId));
+
+  // Invalidate user's thread cache to refresh sidebar
+  const cacheTag = getUserThreadsCacheTag(userId);
+  revalidateTag(cacheTag);
+}
+
+/**
+ * Permanently deletes a thread and all associated messages from the database.
+ *
+ * This function performs a complete thread deletion operation using a database
+ * transaction to ensure data integrity. It first deletes all messages associated
+ * with the thread (to satisfy foreign key constraints), then deletes the thread
+ * itself. The operation is atomic - either both operations succeed or both fail.
+ *
+ * Safety features:
+ * - Validates thread ID is a proper UUID format before attempting deletion
+ * - Uses database transaction to maintain referential integrity
+ * - Throws an error for invalid or empty thread IDs to catch bugs early
+ * - Invalidates user's thread cache to trigger UI updates
+ *
+ * This function does NOT perform ownership verification - that should be handled
+ * at the application layer (e.g., in server actions) before calling this function.
+ *
+ * @param threadId The UUID of the thread to delete
+ * @param userId The user ID for cache invalidation purposes
+ * @throws When threadId is empty or not a valid UUID format
+ *
+ * @example
+ * ```typescript
+ * // Typically called from a server action after ownership verification
+ * const isOwner = await verifyThreadOwnership(threadId, userId);
+ * if (isOwner) {
+ *   await deleteThread(threadId, userId);
+ * }
+ * ```
+ */
+export async function deleteThread(
+  threadId: string,
+  userId: string
+): Promise<void> {
+  // Validate threadId is a valid UUID format
+  if (!threadId || !isValidUUID(threadId)) {
+    throw new Error(`Invalid thread ID: ${threadId}`);
+  }
+
+  await db.transaction(async (tx) => {
+    // Delete all messages associated with the thread first
+    await tx.delete(messages).where(eq(messages.threadId, threadId));
+
+    // Then delete the thread
+    await tx.delete(threads).where(eq(threads.id, threadId));
+  });
 
   // Invalidate user's thread cache to refresh sidebar
   const cacheTag = getUserThreadsCacheTag(userId);
