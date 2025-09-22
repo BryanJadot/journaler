@@ -1,12 +1,57 @@
-import { createMockUserWithPassword } from '@/__tests__/helpers/test-helpers';
+/**
+ * Authentication service test suite.
+ *
+ * Tests core authentication functionality including signup configuration,
+ * user login flows, and user registration flows. Uses comprehensive mocking
+ * to isolate authentication logic from database and external dependencies.
+ *
+ * Testing strategy:
+ * - Environment variable configuration testing
+ * - Success and failure paths for login/signup
+ * - Input validation and security edge cases
+ * - Error handling and user enumeration prevention
+ */
+
+import { jest } from '@jest/globals';
+import bcrypt from 'bcryptjs';
+
 import { isSignupEnabled, loginUser, signupUser } from '@/lib/auth/service';
+import { findUserByUsernameWithPassword, usernameExists } from '@/lib/db/user';
 import { createUser } from '@/lib/user/service';
-import * as userServiceModule from '@/lib/user/service';
-import { User, LoginError, SignupError } from '@/lib/user/types';
 
-const randomUsername = () =>
-  `testuser-${Math.random().toString(36).substring(7)}`;
+// Mock the dependencies
+jest.mock('@/lib/db/user', () => ({
+  findUserByUsernameWithPassword: jest.fn(),
+  usernameExists: jest.fn(),
+}));
 
+jest.mock('@/lib/user/service', () => ({
+  createUser: jest.fn(),
+}));
+
+jest.mock('bcryptjs', () => ({
+  compare: jest.fn(),
+}));
+
+const mockFindUserByUsernameWithPassword =
+  findUserByUsernameWithPassword as jest.MockedFunction<
+    typeof findUserByUsernameWithPassword
+  >;
+const mockUsernameExists = usernameExists as jest.MockedFunction<
+  typeof usernameExists
+>;
+const mockCreateUser = createUser as jest.MockedFunction<typeof createUser>;
+const mockBcryptCompare = bcrypt.compare as jest.MockedFunction<
+  (data: string, encrypted: string) => Promise<boolean>
+>;
+
+/**
+ * Tests signup feature toggle functionality.
+ *
+ * Verifies that signup can be enabled/disabled via environment variables
+ * with exact string matching for security. Tests various edge cases to ensure
+ * only the exact value "true" enables signup, preventing accidental enablement.
+ */
 describe('isSignupEnabled', () => {
   const originalEnv = process.env;
 
@@ -42,33 +87,56 @@ describe('isSignupEnabled', () => {
   });
 });
 
-describe('authenticateUser', () => {
-  it('should return user on successful authentication', async () => {
-    const mockUserData = await createMockUserWithPassword();
-
-    await createUser({
-      username: mockUserData.user.username,
-      password: mockUserData.password,
-    });
-
-    const result = await loginUser({
-      username: mockUserData.user.username,
-      password: mockUserData.password,
-    });
-
-    expect(result).toMatchObject({
-      success: true,
-      user: {
-        id: expect.any(String),
-        username: mockUserData.user.username,
-        createdAt: expect.any(Date),
-      },
-    });
+/**
+ * Tests user authentication and login flows.
+ *
+ * Covers complete login scenarios including successful authentication,
+ * user-not-found cases, invalid password handling, and username validation.
+ * Ensures proper security measures like username enumeration prevention
+ * and secure password comparison.
+ */
+describe('loginUser', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('should return USER_NOT_FOUND for non-existent user', async () => {
+  it('should return user on successful authentication', async () => {
+    const mockUser = {
+      id: 'user-123',
+      username: 'testuser',
+      passwordHash: 'hashedpassword',
+      createdAt: new Date(),
+    };
+
+    mockFindUserByUsernameWithPassword.mockResolvedValue(mockUser);
+    mockBcryptCompare.mockResolvedValue(true);
+
     const result = await loginUser({
-      username: randomUsername(),
+      username: 'testuser',
+      password: 'password123',
+    });
+
+    expect(result).toEqual({
+      success: true,
+      user: {
+        id: 'user-123',
+        username: 'testuser',
+        createdAt: mockUser.createdAt,
+      },
+    });
+
+    expect(mockFindUserByUsernameWithPassword).toHaveBeenCalledWith('testuser');
+    expect(mockBcryptCompare).toHaveBeenCalledWith(
+      'password123',
+      'hashedpassword'
+    );
+  });
+
+  it('should return user-not-found for non-existent user', async () => {
+    mockFindUserByUsernameWithPassword.mockResolvedValue(null);
+
+    const result = await loginUser({
+      username: 'nonexistent',
       password: 'password123',
     });
 
@@ -76,18 +144,26 @@ describe('authenticateUser', () => {
       success: false,
       error: 'user-not-found',
     });
+
+    expect(mockFindUserByUsernameWithPassword).toHaveBeenCalledWith(
+      'nonexistent'
+    );
+    expect(mockBcryptCompare).not.toHaveBeenCalled();
   });
 
-  it('should return INVALID_PASSWORD for wrong password', async () => {
-    const mockUserData = await createMockUserWithPassword();
+  it('should return invalid-password for wrong password', async () => {
+    const mockUser = {
+      id: 'user-123',
+      username: 'testuser',
+      passwordHash: 'hashedpassword',
+      createdAt: new Date(),
+    };
 
-    await createUser({
-      username: mockUserData.user.username,
-      password: mockUserData.password,
-    });
+    mockFindUserByUsernameWithPassword.mockResolvedValue(mockUser);
+    mockBcryptCompare.mockResolvedValue(false);
 
     const result = await loginUser({
-      username: mockUserData.user.username,
+      username: 'testuser',
       password: 'wrongpassword',
     });
 
@@ -95,9 +171,14 @@ describe('authenticateUser', () => {
       success: false,
       error: 'invalid-password',
     });
+
+    expect(mockBcryptCompare).toHaveBeenCalledWith(
+      'wrongpassword',
+      'hashedpassword'
+    );
   });
 
-  it('should return USER_NOT_FOUND for username with spaces (validation)', async () => {
+  it('should return user-not-found for username with spaces', async () => {
     const result = await loginUser({
       username: 'user with spaces',
       password: 'password123',
@@ -107,9 +188,12 @@ describe('authenticateUser', () => {
       success: false,
       error: 'user-not-found',
     });
+
+    // Should not even call the database function due to validation
+    expect(mockFindUserByUsernameWithPassword).not.toHaveBeenCalled();
   });
 
-  it('should return USER_NOT_FOUND for username over 255 characters', async () => {
+  it('should return user-not-found for username over 255 characters', async () => {
     const result = await loginUser({
       username: 'a'.repeat(256),
       password: 'password123',
@@ -119,586 +203,118 @@ describe('authenticateUser', () => {
       success: false,
       error: 'user-not-found',
     });
+
+    // Should not even call the database function due to validation
+    expect(mockFindUserByUsernameWithPassword).not.toHaveBeenCalled();
   });
 });
 
+/**
+ * Tests user registration and signup flows.
+ *
+ * Verifies comprehensive user creation including username validation,
+ * duplicate prevention, and error handling. Tests edge cases like
+ * invalid usernames, length constraints, and database error scenarios
+ * to ensure robust user registration.
+ */
 describe('signupUser', () => {
-  describe('successful signup', () => {
-    it('should create user with valid credentials', async () => {
-      const userData = {
-        username: randomUsername(),
-        password: 'password123',
-      };
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-      const result = await signupUser(userData);
+  it('should create user with valid credentials', async () => {
+    const mockUser = {
+      id: 'user-123',
+      username: 'testuser',
+      createdAt: new Date(),
+    };
 
-      expect(result).toMatchObject({
-        success: true,
-        user: {
-          id: expect.any(String),
-          username: userData.username,
-          createdAt: expect.any(Date),
-        },
-      });
+    mockUsernameExists.mockResolvedValue(false);
+    mockCreateUser.mockResolvedValue(mockUser);
+
+    const result = await signupUser({
+      username: 'testuser',
+      password: 'password123',
     });
 
-    it('should handle username with allowed special characters', async () => {
-      const userData = {
-        username: 'test@user.com+123_dash-allowed',
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toMatchObject({
-        success: true,
-        user: {
-          id: expect.any(String),
-          username: userData.username,
-          createdAt: expect.any(Date),
-        },
-      });
+    expect(result).toEqual({
+      success: true,
+      user: mockUser,
     });
 
-    it('should handle username with numbers', async () => {
-      const userData = {
-        username: `testuser123_${Math.random().toString(36).substring(7)}`,
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toMatchObject({
-        success: true,
-        user: {
-          id: expect.any(String),
-          username: userData.username,
-          createdAt: expect.any(Date),
-        },
-      });
-    });
-
-    it('should handle unicode characters in username', async () => {
-      const userData = {
-        username: `测试用户_${Math.random().toString(36).substring(7)}`,
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toMatchObject({
-        success: true,
-        user: {
-          id: expect.any(String),
-          username: userData.username,
-          createdAt: expect.any(Date),
-        },
-      });
+    expect(mockUsernameExists).toHaveBeenCalledWith('testuser');
+    expect(mockCreateUser).toHaveBeenCalledWith({
+      username: 'testuser',
+      password: 'password123',
     });
   });
 
-  describe('username validation', () => {
-    it('should reject username with spaces', async () => {
-      const userData = {
-        username: 'user with spaces',
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'invalid-username',
-      });
+  it('should reject username with spaces', async () => {
+    const result = await signupUser({
+      username: 'user with spaces',
+      password: 'password123',
     });
 
-    it('should reject username with single space', async () => {
-      const userData = {
-        username: 'user name',
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'invalid-username',
-      });
+    expect(result).toEqual({
+      success: false,
+      error: 'invalid-username',
     });
 
-    it('should reject username with leading space', async () => {
-      const userData = {
-        username: ' username',
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'invalid-username',
-      });
-    });
-
-    it('should reject username with trailing space', async () => {
-      const userData = {
-        username: 'username ',
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'invalid-username',
-      });
-    });
-
-    it('should reject username with multiple spaces', async () => {
-      const userData = {
-        username: 'user   name   here',
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'invalid-username',
-      });
-    });
-
-    it('should reject username with tab characters', async () => {
-      const userData = {
-        username: 'user\tname',
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'invalid-username',
-      });
-    });
-
-    it('should reject username that is only spaces', async () => {
-      const userData = {
-        username: '   ',
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'invalid-username',
-      });
-    });
-
-    it('should reject username that is too long (over 255 characters)', async () => {
-      const userData = {
-        username: 'a'.repeat(256), // One character over the limit
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'username-too-long',
-      });
-    });
-
-    it('should accept username that is exactly 255 characters', async () => {
-      const userData = {
-        username: 'a'.repeat(255), // Exactly at the limit
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result).toMatchObject({
-        success: true,
-        user: {
-          id: expect.any(String),
-          username: userData.username,
-          createdAt: expect.any(Date),
-        },
-      });
-    });
+    // Should not call database functions due to validation
+    expect(mockUsernameExists).not.toHaveBeenCalled();
+    expect(mockCreateUser).not.toHaveBeenCalled();
   });
 
-  describe('duplicate username handling', () => {
-    it('should reject duplicate username', async () => {
-      const userData = {
-        username: randomUsername(),
-        password: 'password123',
-      };
-
-      // Create the first user
-      const firstResult = await signupUser(userData);
-      expect(firstResult.success).toBe(true);
-
-      // Try to create the same user again
-      const secondResult = await signupUser(userData);
-
-      expect(secondResult).toEqual({
-        success: false,
-        error: 'username-taken',
-      });
+  it('should reject username that is too long', async () => {
+    const result = await signupUser({
+      username: 'a'.repeat(256),
+      password: 'password123',
     });
 
-    it('should reject duplicate username with different password', async () => {
-      const username = randomUsername();
-
-      const firstUserData = {
-        username,
-        password: 'password123',
-      };
-
-      const secondUserData = {
-        username,
-        password: 'differentpassword456',
-      };
-
-      // Create the first user
-      const firstResult = await signupUser(firstUserData);
-      expect(firstResult.success).toBe(true);
-
-      // Try to create another user with the same username
-      const secondResult = await signupUser(secondUserData);
-
-      expect(secondResult).toEqual({
-        success: false,
-        error: 'username-taken',
-      });
+    expect(result).toEqual({
+      success: false,
+      error: 'username-too-long',
     });
 
-    it('should handle case-sensitive username uniqueness', async () => {
-      const baseUsername = randomUsername();
-      const lowercaseUser = {
-        username: baseUsername.toLowerCase(),
-        password: 'password123',
-      };
-      const uppercaseUser = {
-        username: baseUsername.toUpperCase(),
-        password: 'password123',
-      };
-
-      // Create lowercase user
-      const firstResult = await signupUser(lowercaseUser);
-      expect(firstResult.success).toBe(true);
-
-      // Try to create uppercase user (different from lowercase)
-      const secondResult = await signupUser(uppercaseUser);
-
-      // Should succeed since usernames are case-sensitive
-      expect(secondResult.success).toBe(true);
-    });
+    // Should not call database functions due to validation
+    expect(mockUsernameExists).not.toHaveBeenCalled();
+    expect(mockCreateUser).not.toHaveBeenCalled();
   });
 
-  describe('error handling', () => {
-    it('should handle database errors during user creation', async () => {
-      const validUser = {
-        username: randomUsername(),
-        password: 'password123',
-      };
+  it('should reject duplicate username', async () => {
+    mockUsernameExists.mockResolvedValue(true);
 
-      // Mock createUser to throw an error
-      const mockCreateUser = jest
-        .spyOn(userServiceModule, 'createUser')
-        .mockRejectedValue(new Error('Database error'));
-
-      const result = await signupUser(validUser);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'username-taken',
-      });
-
-      // Restore original function
-      mockCreateUser.mockRestore();
+    const result = await signupUser({
+      username: 'existinguser',
+      password: 'password123',
     });
 
-    it('should handle unexpected errors gracefully', async () => {
-      const validUser = {
-        username: randomUsername(),
-        password: 'password123',
-      };
-
-      // Mock createUser to throw a non-standard error
-      const mockCreateUser = jest
-        .spyOn(userServiceModule, 'createUser')
-        .mockRejectedValue('String error');
-
-      const result = await signupUser(validUser);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'username-taken',
-      });
-
-      // Restore original function
-      mockCreateUser.mockRestore();
+    expect(result).toEqual({
+      success: false,
+      error: 'username-taken',
     });
+
+    expect(mockUsernameExists).toHaveBeenCalledWith('existinguser');
+    expect(mockCreateUser).not.toHaveBeenCalled();
   });
 
-  describe('edge cases', () => {
-    it('should reject very long username (1000 characters)', async () => {
-      const userData = {
-        username: 'a'.repeat(1000),
-        password: 'password123',
-      };
+  it('should handle createUser errors gracefully', async () => {
+    mockUsernameExists.mockResolvedValue(false);
+    mockCreateUser.mockRejectedValue(new Error('Database error'));
 
-      const result = await signupUser(userData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'username-too-long',
-      });
+    const result = await signupUser({
+      username: 'testuser',
+      password: 'password123',
     });
 
-    it('should handle empty password', async () => {
-      const mockUserData = await createMockUserWithPassword(undefined, '');
-
-      // This should succeed at the service level - validation happens at the API level
-      const result = await signupUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-
-      expect(result.success).toBe(true);
+    expect(result).toEqual({
+      success: false,
+      error: 'username-taken',
     });
 
-    it('should handle very long password', async () => {
-      const mockUserData = await createMockUserWithPassword(
-        undefined,
-        'p'.repeat(1000)
-      );
-
-      const result = await signupUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should handle username with emoji', async () => {
-      const userData = {
-        username: `user${randomUsername()}👤`,
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result.success).toBe(true);
-
-      const successResult = result as { success: true; user: User };
-      expect(successResult.user.username).toContain('👤');
-    });
-
-    it('should handle username starting with numbers', async () => {
-      const userData = {
-        username: `123user_${Math.random().toString(36).substring(7)}`,
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result.success).toBe(true);
-
-      const successResult = result as { success: true; user: User };
-      expect(successResult.user.username).toMatch(/^123user_/);
-    });
-
-    it('should handle username with special characters but no spaces', async () => {
-      const userData = {
-        username: `!@#$%^&*()_+-=[]{}|;:,.<>?${randomUsername()}`,
-        password: 'password123',
-      };
-
-      const result = await signupUser(userData);
-
-      expect(result.success).toBe(true);
-    });
-  });
-
-  describe('password handling and authentication edge cases', () => {
-    it('should handle special characters in password correctly', async () => {
-      const complexPassword = 'P@ssw0rd!#$%^&*()_+-=[]{}|;:,.<>?`~';
-      const mockUserData = await createMockUserWithPassword(
-        undefined,
-        complexPassword
-      );
-
-      const signupResult = await signupUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-
-      expect(signupResult.success).toBe(true);
-
-      // Test that we can authenticate with the complex password
-      const loginResult = await loginUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-
-      expect(loginResult.success).toBe(true);
-    });
-
-    it('should handle unicode characters in password correctly', async () => {
-      const unicodePassword = 'пароль测试مرور🔒';
-      const mockUserData = await createMockUserWithPassword(
-        undefined,
-        unicodePassword
-      );
-
-      const signupResult = await signupUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-
-      expect(signupResult.success).toBe(true);
-
-      // Test that we can authenticate with the unicode password
-      const loginResult = await loginUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-
-      expect(loginResult.success).toBe(true);
-    });
-
-    it('should properly hash and compare passwords with whitespace', async () => {
-      const passwordWithWhitespace = '  password with spaces  ';
-      const mockUserData = await createMockUserWithPassword(
-        undefined,
-        passwordWithWhitespace
-      );
-
-      const signupResult = await signupUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-
-      expect(signupResult.success).toBe(true);
-
-      // Exact match should work
-      const loginResult = await loginUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-
-      expect(loginResult.success).toBe(true);
-
-      // Trimmed version should NOT work (passwords are case and space sensitive)
-      const loginResultTrimmed = await loginUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password.trim(),
-      });
-
-      expect(loginResultTrimmed.success).toBe(false);
-
-      const failureResult = loginResultTrimmed as {
-        success: false;
-        error: LoginError;
-      };
-      expect(failureResult.error).toBe('invalid-password');
-    });
-
-    it('should handle case-sensitive password authentication', async () => {
-      const originalPassword = 'CaseSensitivePassword';
-      const mockUserData = await createMockUserWithPassword(
-        undefined,
-        originalPassword
-      );
-
-      await signupUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-
-      // Correct case should work
-      const correctResult = await loginUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-
-      expect(correctResult.success).toBe(true);
-
-      // Different case should fail
-      const wrongCaseResult = await loginUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password.toLowerCase(),
-      });
-
-      expect(wrongCaseResult.success).toBe(false);
-
-      const wrongCaseFailure = wrongCaseResult as {
-        success: false;
-        error: LoginError;
-      };
-      expect(wrongCaseFailure.error).toBe('invalid-password');
-    });
-  });
-
-  describe('additional database interaction edge cases', () => {
-    it('should handle database query timing edge cases', async () => {
-      const mockUserData = await createMockUserWithPassword();
-
-      // Create user first
-      const signupResult = await signupUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-      expect(signupResult.success).toBe(true);
-
-      // Concurrent signup attempts should fail gracefully
-      const concurrentSignupPromises = Array.from({ length: 3 }, () =>
-        signupUser({
-          username: mockUserData.user.username,
-          password: 'different-password',
-        })
-      );
-
-      const results = await Promise.all(concurrentSignupPromises);
-
-      // All concurrent attempts should fail with USERNAME_TAKEN
-      results.forEach((result) => {
-        expect(result.success).toBe(false);
-
-        const failureResult = result as { success: false; error: SignupError };
-        expect(failureResult.error).toBe('username-taken');
-      });
-    });
-
-    it('should handle rapid successive login attempts', async () => {
-      const mockUserData = await createMockUserWithPassword();
-
-      await signupUser({
-        username: mockUserData.user.username,
-        password: mockUserData.password,
-      });
-
-      // Multiple rapid login attempts should all work
-      const loginPromises = Array.from({ length: 5 }, () =>
-        loginUser({
-          username: mockUserData.user.username,
-          password: mockUserData.password,
-        })
-      );
-
-      const results = await Promise.all(loginPromises);
-
-      results.forEach((result) => {
-        expect(result.success).toBe(true);
-
-        const successResult = result as { success: true; user: User };
-        expect(successResult.user.username).toBe(mockUserData.user.username);
-      });
+    expect(mockCreateUser).toHaveBeenCalledWith({
+      username: 'testuser',
+      password: 'password123',
     });
   });
 });

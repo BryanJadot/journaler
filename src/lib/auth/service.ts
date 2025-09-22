@@ -1,8 +1,6 @@
 import bcrypt from 'bcryptjs';
-import { eq } from 'drizzle-orm';
 
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { findUserByUsernameWithPassword, usernameExists } from '@/lib/db/user';
 import { createUser } from '@/lib/user/service';
 import type {
   CreateUserData,
@@ -13,7 +11,13 @@ import type {
 } from '@/lib/user/types';
 
 /**
- * Checks if user signup is enabled via environment variable
+ * Checks if user signup is enabled via environment variable.
+ *
+ * Uses strict string comparison for security - only the exact value "true"
+ * enables signup to prevent accidental enablement through environment
+ * variable typos or case variations. This feature toggle allows administrators
+ * to disable new user registrations in production environments.
+ *
  * @returns true if ENABLE_SIGNUP is exactly "true", false otherwise
  */
 export function isSignupEnabled(): boolean {
@@ -21,18 +25,15 @@ export function isSignupEnabled(): boolean {
 }
 
 /**
- * Validates username format and constraints for user registration/login
+ * Validates username format and constraints for user registration/login.
  *
- * Performs comprehensive username validation to ensure data integrity
- * and prevent common attack vectors. Uses discriminated union return type
- * for type-safe error handling.
+ * Enforces business rules and security constraints to prevent data integrity
+ * issues and potential attack vectors. Whitespace rejection prevents confusion
+ * and potential security issues, while length limits align with database
+ * schema constraints.
  *
- * @param username - The username string to validate
- * @returns Object indicating validation success or specific error
- *
- * Validation rules:
- * - No whitespace characters (spaces, tabs, newlines)
- * - Maximum length of 255 characters (database constraint)
+ * @param username The username string to validate
+ * @returns Object indicating validation success or specific error type
  *
  * @example
  * const result = validateUsername('valid_user123');
@@ -111,10 +112,7 @@ export async function loginUser(
     return { success: false, error: 'user-not-found' };
   }
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.username, credentials.username));
+  const user = await findUserByUsernameWithPassword(credentials.username);
 
   if (!user) {
     return { success: false, error: 'user-not-found' };
@@ -181,12 +179,9 @@ export async function signupUser(
   }
 
   // Query database to prevent duplicate usernames (unique constraint enforcement)
-  const existingUser = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.username, userData.username));
+  const exists = await usernameExists(userData.username);
 
-  if (existingUser.length > 0) {
+  if (exists) {
     return { success: false, error: 'username-taken' };
   }
 

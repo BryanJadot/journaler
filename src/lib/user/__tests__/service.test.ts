@@ -1,18 +1,44 @@
+/**
+ * User service layer test suite.
+ *
+ * Tests the business logic layer that orchestrates user operations
+ * between the API and database layers. Ensures proper password
+ * hashing, data sanitization, and error handling in user management.
+ *
+ * Testing strategy:
+ * - User creation with secure password handling
+ * - Data field security verification
+ * - User retrieval operations
+ * - Integration between service and database layers
+ * - Password security validation (plain text exclusion)
+ */
+
 import { describe, expect, it } from '@jest/globals';
 import { eq } from 'drizzle-orm';
 
+import { createUniqueUsername } from '@/__tests__/helpers/test-helpers';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { createUser, getUserById } from '@/lib/user/service';
 
-const randomUsername = () =>
-  `testuser-${Math.random().toString(36).substring(7)}`;
-
+/**
+ * Tests user service business logic operations.
+ *
+ * Service layer coordinates between API requests and database operations,
+ * handling password security, data validation, and proper abstraction
+ * of database implementation details.
+ */
 describe('User Service', () => {
+  /**
+   * Tests user creation business logic.
+   *
+   * Verifies that password hashing, data sanitization, and user
+   * creation flow work correctly through the service layer abstraction.
+   */
   describe('createUser', () => {
     it('should create a user with hashed password', async () => {
       const userData = {
-        username: randomUsername(),
+        username: createUniqueUsername(),
         password: 'password123',
       };
 
@@ -28,7 +54,7 @@ describe('User Service', () => {
 
     it('should not store plain text password', async () => {
       const userData = {
-        username: randomUsername(),
+        username: createUniqueUsername(),
         password: 'password123',
       };
 
@@ -44,10 +70,16 @@ describe('User Service', () => {
     });
   });
 
+  /**
+   * Tests user retrieval business logic.
+   *
+   * Ensures proper user lookup functionality with secure data filtering
+   * and appropriate null handling for non-existent users.
+   */
   describe('getUserById', () => {
     it('should return user when found', async () => {
       const userData = {
-        username: randomUsername(),
+        username: createUniqueUsername(),
         password: 'password123',
       };
 
