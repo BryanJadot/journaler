@@ -12,7 +12,9 @@ interface MessageBubbleProps {
 function UserMessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className="chat chat-end">
-      <div className="chat-bubble text-md">{message.content}</div>
+      <div className="chat-bubble text-md">
+        <ReactMarkdown>{message.content}</ReactMarkdown>
+      </div>
     </div>
   );
 }
