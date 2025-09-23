@@ -55,9 +55,8 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5-chat-latest',
-      temperature: 0.7,
-      top_p: 0.9,
+      model: 'gpt-5-mini',
+      reasoning: { effort: 'low' },
       input: [
         { role: 'user', content: 'Hello' },
         { role: 'assistant', content: 'Hi there!' },
@@ -123,9 +122,8 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5-chat-latest',
-      temperature: 0.7,
-      top_p: 0.9,
+      model: 'gpt-5-mini',
+      reasoning: { effort: 'low' },
       input: [{ role: 'user', content: 'First message' }],
       instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
@@ -264,9 +262,8 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5-chat-latest',
-      temperature: 0.7,
-      top_p: 0.9,
+      model: 'gpt-5-mini',
+      reasoning: { effort: 'low' },
       input: [
         { role: 'system', content: 'You are helpful' },
         { role: 'user', content: 'Hi' },
@@ -300,9 +297,8 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
-      model: 'gpt-5-chat-latest',
-      temperature: 0.7,
-      top_p: 0.9,
+      model: 'gpt-5-mini',
+      reasoning: { effort: 'low' },
       input: [{ role: 'user', content: 'Test message' }],
       instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
