@@ -90,7 +90,7 @@ export function SidebarThreadsList({ threads }: { threads: ThreadSummary[] }) {
           <div className="flex flex-row group w-full p-0">
             <Link
               href={getChatUrl(thread.id)}
-              className="flex-1 min-w-0 pl-3 py-1.5"
+              className="flex-1 min-w-0 pl-3 py-1.5 block"
               title={thread.name} // Tooltip shows full name for truncated text
             >
               <div className="truncate">{thread.name}</div>
