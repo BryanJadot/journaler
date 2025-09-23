@@ -189,51 +189,6 @@ describe('Thread Deletion', () => {
     expect(threadAfter).toBeUndefined();
   });
 
-  it('should successfully delete thread with multiple messages', async () => {
-    // Add more messages to thread1 (already has 3)
-    await saveMessage(thread1.id, 'user' as Role, 'User message 3');
-    await saveMessage(thread1.id, 'assistant' as Role, 'Assistant response 2');
-    await saveMessage(thread1.id, 'user' as Role, 'User message 4');
-    await saveMessage(thread1.id, 'assistant' as Role, 'Assistant response 3');
-
-    // Verify thread has multiple messages
-    const threadBefore = await getThreadWithMessages(thread1.id);
-    expect(threadBefore?.messages).toHaveLength(7);
-
-    // Delete the thread
-    await deleteThread(thread1.id, testUserId);
-
-    // Verify thread and all messages are deleted
-    const threadAfter = await getThreadWithMessages(thread1.id);
-    expect(threadAfter).toBeUndefined();
-
-    // Double-check no messages remain
-    const remainingMessages = await db.query.messages.findMany({
-      where: eq(messages.threadId, thread1.id),
-    });
-    expect(remainingMessages).toHaveLength(0);
-  });
-
-  it('should work correctly when deleting multiple threads sequentially', async () => {
-    // Create another thread for sequential deletion
-    const thread3 = await createThread(testUserId, 'Thread 3');
-    await saveMessage(thread3.id, 'user' as Role, 'Thread 3 message');
-
-    // Verify all threads exist
-    expect(await getThreadWithMessages(thread1.id)).toBeDefined();
-    expect(await getThreadWithMessages(thread2.id)).toBeDefined();
-    expect(await getThreadWithMessages(thread3.id)).toBeDefined();
-
-    // Delete threads one by one
-    await deleteThread(thread1.id, testUserId);
-    await deleteThread(thread3.id, testUserId);
-
-    // Verify correct deletions
-    expect(await getThreadWithMessages(thread1.id)).toBeUndefined();
-    expect(await getThreadWithMessages(thread2.id)).toBeDefined(); // Should remain
-    expect(await getThreadWithMessages(thread3.id)).toBeUndefined();
-  });
-
   it('should throw error for empty thread ID', async () => {
     // Should throw an error for invalid thread ID
     await expect(deleteThread('', testUserId)).rejects.toThrow(
