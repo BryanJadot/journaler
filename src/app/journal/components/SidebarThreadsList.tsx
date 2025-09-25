@@ -81,13 +81,12 @@ export function SidebarThreadsList({ threads }: { threads: ThreadSummary[] }) {
     <ul className="menu w-full">
       {/* Map through threads and create navigation links */}
       {threads.map((thread) => (
-        <li
-          key={thread.id}
-          className={clsx('w-full', {
-            'menu-active': thread.id === currentThreadId,
-          })}
-        >
-          <div className="flex flex-row group w-full p-0">
+        <li key={thread.id} className="w-full">
+          <div
+            className={clsx('flex flex-row group w-full p-0', {
+              'menu-active': thread.id === currentThreadId,
+            })}
+          >
             <Link
               href={getChatUrl(thread.id)}
               className="flex-1 min-w-0 pl-3 py-1.5 block"
