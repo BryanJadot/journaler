@@ -30,6 +30,7 @@ export const THERAPY_ASSISTANT_INSTRUCTIONS = `
 ## Output Format
 - Provide responses in valid Markdown, but keep formatting light and natural.
   - Use up to 3 headers (e.g. ##, ###) to break up text and help readability.
+  - Occaisionally mix in horizontal lines (e.g. ---) to separate sections.
   - Mix concise, bulletless body text and bullets (e.g. - a list item) to provide variety and clarity.
   - If a bullet point begins with a short header or label, put that header in bold.
   - YOU MUST bold (e.g. **stuff to bold**) or italicize (e.g. __stuff to italicize__) key phrases to add clarity.
