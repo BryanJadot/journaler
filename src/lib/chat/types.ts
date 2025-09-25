@@ -137,17 +137,24 @@ export type ChatMessage = {
  *   - Updated whenever a new message is added to the thread
  *   - Displayed as relative time in UI (e.g., "2 hours ago")
  *
+ * @property {boolean} starred - Whether the thread is starred/favorited
+ *   - Starred threads appear at the top of the thread list
+ *   - Used for quick access to important conversations
+ *   - Toggled via star/unstar actions in the UI
+ *
  * @example
  * ```typescript
  * const thread: ThreadSummary = {
  *   id: 'abc123de-f456-7890-abcd-ef1234567890',
  *   name: 'JavaScript Performance Optimization',
- *   updatedAt: new Date('2024-01-15T14:30:00.000Z')
+ *   updatedAt: new Date('2024-01-15T14:30:00.000Z'),
+ *   starred: false
  * };
  *
  * // Used in sidebar navigation
  * threads.map(thread => (
  *   <Link href={getChatUrl(thread.id)}>
+ *     {thread.starred && <StarIcon />}
  *     {thread.name}
  *   </Link>
  * ))
@@ -161,4 +168,5 @@ export type ThreadSummary = {
   id: string;
   name: string;
   updatedAt: Date;
+  starred: boolean;
 };

@@ -43,10 +43,10 @@ export async function SidebarThreadsListServer() {
 /**
  * Complete sidebar component with thread navigation and new chat functionality.
  *
- * Renders a fixed-width sidebar containing:
+ * Renders a fixed-width sidebar containing three sections:
  * - "New Chat" button that creates a new thread via server action
- * - Scrollable list of user's existing chat threads
- * - Loading skeleton during thread data fetching
+ * - Starred threads for quick access (non-scrollable)
+ * - Unstarred threads in a scrollable area
  *
  * The sidebar uses server-side rendering for thread data and includes
  * proper Suspense boundaries for progressive loading.
@@ -72,11 +72,9 @@ export function SidebarContents() {
             Thread list with Suspense boundary for progressive rendering
             Shows skeleton loader while threads are being fetched
           */}
-      <div className="border-t border-base-300 flex flex-col flex-1 overflow-y-auto gap-2">
-        <Suspense fallback={<SidebarThreadsSkeleton />}>
-          <SidebarThreadsListServer />
-        </Suspense>
-      </div>
+      <Suspense fallback={<SidebarThreadsSkeleton />}>
+        <SidebarThreadsListServer />
+      </Suspense>
     </div>
   );
 }

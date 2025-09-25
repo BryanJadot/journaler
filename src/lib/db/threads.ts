@@ -102,7 +102,7 @@ export async function getThreadsByUser(userId: string) {
  *
  * @param userId - The unique identifier of the user whose threads to retrieve
  * @returns A promise that resolves to an array of thread summaries
- *   containing only id, name, and updatedAt fields, sorted by most recent activity
+ *   containing only id, name, updatedAt, and starred fields, sorted by starred status then most recent activity
  *
  * @example
  * ```typescript
@@ -120,11 +120,14 @@ export async function getThreadSummariesForUser(
 ): Promise<ThreadSummary[]> {
   return db.query.threads.findMany({
     where: eq(threads.userId, userId),
-    orderBy: [desc(threads.updatedAt)], // Most recently updated threads first
+    // Dual-level sorting: starred threads always appear first regardless of update time,
+    // then within each group (starred/unstarred) sort by most recent activity
+    orderBy: [desc(threads.starred), desc(threads.updatedAt)],
     columns: {
       id: true, // Required for navigation links
       name: true, // Thread display title
       updatedAt: true, // For sorting and timestamp display
+      starred: true, // For displaying star status
     },
   });
 }
@@ -345,6 +348,48 @@ export async function updateThreadName(
     .update(threads)
     .set({
       name: newName,
+      updatedAt: new Date(),
+    })
+    .where(eq(threads.id, threadId));
+
+  // Invalidate user's thread cache to refresh sidebar
+  const cacheTag = getUserThreadsCacheTag(userId);
+  revalidateTag(cacheTag);
+}
+
+/**
+ * Toggles the starred status of a thread.
+ *
+ * This function updates the starred field of a thread to the specified value,
+ * which determines whether the thread appears at the top of the thread list.
+ * The operation also updates the thread's updatedAt timestamp and invalidates
+ * the user's thread cache to trigger UI updates.
+ *
+ * @param threadId - The unique identifier of the thread to update
+ * @param starred - The new starred status (true to star, false to unstar)
+ * @param userId - The user ID for cache invalidation
+ * @returns A promise that resolves when the update is complete
+ *
+ * @example
+ * ```typescript
+ * // Star a thread
+ * await setThreadStarred('thread123', true, 'user456');
+ *
+ * // Unstar a thread
+ * await setThreadStarred('thread123', false, 'user456');
+ * ```
+ *
+ * @throws {Error} Database error if update fails
+ */
+export async function setThreadStarred(
+  threadId: string,
+  starred: boolean,
+  userId: string
+): Promise<void> {
+  await db
+    .update(threads)
+    .set({
+      starred,
       updatedAt: new Date(),
     })
     .where(eq(threads.id, threadId));

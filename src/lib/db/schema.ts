@@ -7,6 +7,7 @@ import {
   text,
   serial,
   pgEnum,
+  boolean,
 } from 'drizzle-orm/pg-core';
 
 // Enums
@@ -27,6 +28,8 @@ export const threads = pgTable('threads', {
     .notNull()
     .references(() => users.id),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  // Starred flag for thread prioritization - starred threads appear at top of thread list
+  starred: boolean('starred').notNull().default(false),
 });
 
 export const messages = pgTable('messages', {

@@ -19,6 +19,18 @@ const mockCreateThread = createThread as jest.MockedFunction<
   typeof createThread
 >;
 
+// Helper to create mock thread with default values
+const createMockThread = (overrides = {}) => ({
+  id: 'thread-123',
+  name: 'Test Thread',
+  userId: 'user-123',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  starred: false,
+  messages: [],
+  ...overrides,
+});
+
 describe('getOrCreateChatUrl', () => {
   let testUserId: string;
 
@@ -38,14 +50,11 @@ describe('getOrCreateChatUrl', () => {
   });
 
   it('should return URL for existing recent thread', async () => {
-    const mockThread = {
+    const mockThread = createMockThread({
       id: 'thread-123',
       name: 'Existing Thread',
       userId: testUserId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      messages: [],
-    };
+    });
 
     mockGetMostRecentThread.mockResolvedValue(mockThread);
 
@@ -57,13 +66,11 @@ describe('getOrCreateChatUrl', () => {
   });
 
   it('should create new thread and return URL when no threads exist', async () => {
-    const mockNewThread = {
+    const mockNewThread = createMockThread({
       id: 'new-thread-456',
       name: DEFAULT_THREAD_NAME,
       userId: testUserId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
     mockGetMostRecentThread.mockResolvedValue(undefined);
     mockCreateThread.mockResolvedValue(mockNewThread);
@@ -79,13 +86,11 @@ describe('getOrCreateChatUrl', () => {
   });
 
   it('should handle getMostRecentThread returning undefined', async () => {
-    const mockNewThread = {
+    const mockNewThread = createMockThread({
       id: 'undefined-thread-789',
       name: DEFAULT_THREAD_NAME,
       userId: testUserId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
     mockGetMostRecentThread.mockResolvedValue(undefined);
     mockCreateThread.mockResolvedValue(mockNewThread);
@@ -130,14 +135,11 @@ describe('getOrCreateChatUrl', () => {
       .returning();
     const userId2 = testUser2.id;
 
-    const mockThread = {
+    const mockThread = createMockThread({
       id: 'user2-thread-abc',
       name: 'User 2 Thread',
       userId: userId2,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      messages: [],
-    };
+    });
 
     mockGetMostRecentThread.mockResolvedValue(mockThread);
 

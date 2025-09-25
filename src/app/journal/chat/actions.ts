@@ -9,6 +9,7 @@ import {
   createThread,
   deleteThread,
   getThreadById,
+  setThreadStarred,
   verifyThreadOwnership,
 } from '@/lib/db/threads';
 
@@ -86,6 +87,62 @@ export async function deleteThreadAction(threadId: string) {
   await deleteThread(threadId, userId);
 
   return { success: true };
+}
+
+/**
+ * Server action that toggles the starred status of a thread.
+ *
+ * This action provides secure thread starring/unstarring by verifying ownership
+ * before performing the update. Starred threads appear at the top of the thread
+ * list for quick access. Returns a structured response for proper UI feedback.
+ *
+ * Key behaviors:
+ * - Validates user authentication via headers set by middleware
+ * - Verifies thread ownership before allowing the star toggle
+ * - Updates thread starred status and updatedAt timestamp
+ * - Invalidates user's thread cache for immediate sidebar refresh
+ * - Returns structured response for client-side handling
+ *
+ * @param threadId The UUID of the thread to star/unstar
+ * @param starred Whether to star (true) or unstar (false) the thread
+ * @returns Promise resolving to an object with success boolean and optional error message
+ *
+ * @example
+ * ```typescript
+ * // In a React component
+ * const handleToggleStar = async () => {
+ *   const result = await setThreadStarredAction(threadId, !thread.starred);
+ *   if (result.success) {
+ *     // Update local state or refresh
+ *     router.refresh();
+ *   } else {
+ *     // Show error message to user
+ *     setError(result.error);
+ *   }
+ * };
+ * ```
+ */
+export async function setThreadStarredAction(
+  threadId: string,
+  starred: boolean
+) {
+  try {
+    const userId = await getUserIdFromHeader();
+
+    // Verify ownership before updating
+    const isOwner = await verifyThreadOwnership(threadId, userId);
+    if (!isOwner) {
+      return { success: false, error: 'Thread not found or access denied' };
+    }
+
+    // Update the starred status
+    await setThreadStarred(threadId, starred, userId);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating thread starred status:', error);
+    return { success: false, error: 'Failed to update starred status' };
+  }
 }
 
 /**

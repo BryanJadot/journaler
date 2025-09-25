@@ -15,6 +15,13 @@
       "when": 1757043122655,
       "tag": "0001_icy_punisher",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1758820924276,
+      "tag": "0002_dashing_sersi",
+      "breakpoints": true
     }
   ]
 }

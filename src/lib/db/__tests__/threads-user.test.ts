@@ -224,11 +224,13 @@ describe('User Thread Operations', () => {
         id: thread2.id, // Most recent first
         name: 'Second Thread',
         updatedAt: expect.any(Date),
+        starred: false,
       });
       expect(summaries[1]).toEqual({
         id: thread1.id,
         name: 'First Thread',
         updatedAt: expect.any(Date),
+        starred: false,
       });
 
       // Ensure no messages are included
