@@ -371,7 +371,7 @@ describe('JWT Auth Functions', () => {
       expect(payload.exp).toBeGreaterThan(payload.iat);
     });
 
-    it('should set appropriate expiration time (24 hours)', async () => {
+    it('should set appropriate expiration time (7 days)', async () => {
       const mockUser = createMockUser();
       const token = await createAuthToken(mockUser);
 
@@ -382,7 +382,7 @@ describe('JWT Auth Functions', () => {
 
       const expirationTime = payload.exp * 1000; // Convert to milliseconds
       const issuedTime = payload.iat * 1000;
-      const expectedDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      const expectedDuration = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
       expect(expirationTime - issuedTime).toBe(expectedDuration);
     });

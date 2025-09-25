@@ -75,7 +75,7 @@ export type TokenVerificationResult =
  * Generates a secure, time-limited token with user identification
  *
  * @param user - User object containing authentication details
- * @returns Signed JWT token valid for 24 hours
+ * @returns Signed JWT token valid for 7 days
  *
  * @example
  * const token = await createAuthToken(user);
@@ -92,7 +92,7 @@ export async function createAuthToken(user: User): Promise<string> {
   })
     .setProtectedHeader({ alg: 'HS256' }) // Use HMAC-SHA256 for signing
     .setIssuedAt() // Record token creation time
-    .setExpirationTime('24h') // Token expires after 24 hours
+    .setExpirationTime('7d') // Token expires after 7 days
     .sign(secret); // Sign with secure secret
 
   return token;
