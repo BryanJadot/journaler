@@ -134,11 +134,7 @@ export function SidebarThreadsList({ threads }: { threads: ThreadSummary[] }) {
           className="flex-1 min-w-0 pl-3 py-1.5 block"
           title={thread.name} // Tooltip shows full name for truncated text
         >
-          <div className="flex items-center gap-1.5">
-            {/* Show solid star icon next to thread name for visual indication */}
-            {thread.starred && <StarSolidIcon className="w-4 h-4 shrink-0" />}
-            <div className="truncate">{thread.name}</div>
-          </div>
+          <div className="truncate">{thread.name}</div>
         </Link>
 
         <div
