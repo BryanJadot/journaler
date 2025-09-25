@@ -1,3 +1,4 @@
+import { PlusCircleIcon } from '@heroicons/react/24/outline';
 import { Suspense } from 'react';
 
 import { createNewThreadAction } from '@/app/journal/chat/actions';
@@ -63,7 +64,10 @@ export function SidebarContents() {
       <form action={createNewThreadAction} className="shrink-0">
         <ul className="menu w-full">
           <li>
-            <button type="submit">+ New Chat</button>
+            <button type="submit" className="flex items-center gap-1.5">
+              <PlusCircleIcon className="w-4 h-4" />
+              New Chat
+            </button>
           </li>
         </ul>
       </form>

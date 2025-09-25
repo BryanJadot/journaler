@@ -136,9 +136,7 @@ export function SidebarThreadsList({ threads }: { threads: ThreadSummary[] }) {
         >
           <div className="flex items-center gap-1.5">
             {/* Show solid star icon next to thread name for visual indication */}
-            {thread.starred && (
-              <StarSolidIcon className="w-3.5 h-3.5 text-yellow-500 shrink-0" />
-            )}
+            {thread.starred && <StarSolidIcon className="w-4 h-4 shrink-0" />}
             <div className="truncate">{thread.name}</div>
           </div>
         </Link>
