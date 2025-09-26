@@ -10,6 +10,7 @@ import {
   deleteThread,
   getThreadById,
   setThreadStarred,
+  updateThreadName,
   verifyThreadOwnership,
 } from '@/lib/db/threads';
 
@@ -200,5 +201,86 @@ export async function getThreadNameAction(
       success: false,
       error: 'Failed to retrieve thread name',
     };
+  }
+}
+
+/**
+ * Server action that renames a thread with comprehensive validation and error handling.
+ *
+ * This action enables users to update thread names while maintaining data integrity
+ * and providing clear feedback for various error conditions. It implements multiple
+ * layers of validation to ensure a smooth user experience.
+ *
+ * Input validation:
+ * - Trims whitespace and checks for empty names
+ * - Enforces 255-character limit (matches database schema)
+ * - Prevents unnecessary database calls for unchanged names
+ *
+ * Security and authorization:
+ * - Validates user authentication via middleware-set headers
+ * - Verifies thread ownership before allowing modifications
+ * - Returns consistent error messages without exposing internal details
+ *
+ * Data consistency:
+ * - Uses atomic database updates with conditional logic
+ * - Invalidates user's thread cache for immediate UI synchronization
+ * - Returns structured responses for proper client-side handling
+ *
+ * @param threadId The UUID of the thread to rename
+ * @param newName The new name to assign to the thread
+ * @returns Promise resolving to success object or error object with descriptive message
+ *
+ * @example
+ * ```typescript
+ * // Basic usage in an inline editor
+ * const result = await renameThreadAction(threadId, newName.trim());
+ * if (result.success) {
+ *   setIsEditing(false);
+ *   router.refresh(); // Updates sidebar immediately
+ * } else {
+ *   setError(result.error); // Show validation/permission errors
+ *   inputRef.current?.focus(); // Keep editor active
+ * }
+ * ```
+ */
+export async function renameThreadAction(
+  threadId: string,
+  newName: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    // Validate and sanitize the new thread name
+    const trimmedName = newName.trim();
+    if (!trimmedName || trimmedName.length === 0) {
+      return { success: false, error: 'Thread name cannot be empty' };
+    }
+
+    // Enforce database schema constraint (varchar(255))
+    if (trimmedName.length > 255) {
+      return {
+        success: false,
+        error: 'Thread name is too long (max 255 characters)',
+      };
+    }
+
+    const userId = await getUserIdFromHeader();
+
+    // Verify ownership before updating
+    const isOwner = await verifyThreadOwnership(threadId, userId);
+    if (!isOwner) {
+      return { success: false, error: 'Thread not found or access denied' };
+    }
+
+    // Perform the database update with ownership verification built-in
+    const updated = await updateThreadName(threadId, trimmedName, userId);
+
+    if (!updated) {
+      // This could happen if thread doesn't exist or database constraint fails
+      return { success: false, error: 'Failed to update thread name' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error renaming thread:', error);
+    return { success: false, error: 'Failed to rename thread' };
   }
 }

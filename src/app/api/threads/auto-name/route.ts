@@ -5,6 +5,7 @@ import {
   validateThreadForAutoNaming,
   generateThreadName,
 } from '@/lib/chat/auto-naming';
+import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
 import { getThreadWithFirstMessage, updateThreadName } from '@/lib/db/threads';
 
 /**
@@ -64,8 +65,25 @@ export async function POST(request: NextRequest) {
       threadData.firstMessage!.content
     );
 
-    // Update thread name in database (cache invalidation handled in service)
-    await updateThreadName(threadId, generatedName, userId);
+    // Conditionally update thread name to prevent race conditions
+    // Uses atomic database operation to only update if thread still has default name
+    // This prevents overwriting user-initiated renames that occur during AI generation
+    const updated = await updateThreadName(
+      threadId,
+      generatedName,
+      userId,
+      DEFAULT_THREAD_NAME // Only update if current name matches this value
+    );
+
+    if (!updated) {
+      // Thread was already renamed (likely by user during AI generation)
+      // This is a successful outcome - user preference takes precedence
+      return NextResponse.json({
+        success: false,
+        reason: 'Thread was already renamed',
+        threadId,
+      });
+    }
 
     return NextResponse.json({
       success: true,

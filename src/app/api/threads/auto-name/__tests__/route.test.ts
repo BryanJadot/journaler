@@ -68,7 +68,7 @@ describe('/api/threads/auto-name', () => {
       mockGetThreadWithFirstMessage.mockResolvedValue(mockThreadData);
       mockValidateThreadForAutoNaming.mockReturnValue({ eligible: true });
       mockGenerateThreadName.mockResolvedValue(mockGeneratedName);
-      mockUpdateThreadName.mockResolvedValue(undefined);
+      mockUpdateThreadName.mockResolvedValue(true);
     });
 
     it('should successfully auto-name a thread', async () => {
@@ -98,7 +98,8 @@ describe('/api/threads/auto-name', () => {
       expect(mockUpdateThreadName).toHaveBeenCalledWith(
         mockThreadId,
         mockGeneratedName,
-        mockUserId
+        mockUserId,
+        DEFAULT_THREAD_NAME
       );
     });
 
@@ -114,7 +115,8 @@ describe('/api/threads/auto-name', () => {
       expect(mockUpdateThreadName).toHaveBeenCalledWith(
         mockThreadId,
         '',
-        mockUserId
+        mockUserId,
+        DEFAULT_THREAD_NAME
       );
     });
 
@@ -128,6 +130,30 @@ describe('/api/threads/auto-name', () => {
 
       expect(response.status).toBe(200);
       expect(data.newName).toBe(specialName);
+    });
+
+    it('should handle race condition when thread is renamed during generation', async () => {
+      // Simulate thread being renamed by user during OpenAI generation
+      mockUpdateThreadName.mockResolvedValue(false);
+
+      const request = createRequest({ threadId: mockThreadId });
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual({
+        success: false,
+        reason: 'Thread was already renamed',
+        threadId: mockThreadId,
+      });
+
+      // Verify that we still tried to update with the conditional check
+      expect(mockUpdateThreadName).toHaveBeenCalledWith(
+        mockThreadId,
+        mockGeneratedName,
+        mockUserId,
+        DEFAULT_THREAD_NAME
+      );
     });
   });
 
@@ -419,7 +445,7 @@ describe('/api/threads/auto-name', () => {
       mockGetThreadWithFirstMessage.mockResolvedValue(mockThreadData);
       mockValidateThreadForAutoNaming.mockReturnValue({ eligible: true });
       mockGenerateThreadName.mockResolvedValue(mockGeneratedName);
-      mockUpdateThreadName.mockResolvedValue(undefined);
+      mockUpdateThreadName.mockResolvedValue(true);
 
       const request = createRequest({
         threadId: mockThreadId,

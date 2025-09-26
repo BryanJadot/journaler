@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm';
+import { and, eq, desc } from 'drizzle-orm';
 import { unstable_cache, revalidateTag } from 'next/cache';
 import { validate as isValidUUID } from 'uuid';
 
@@ -303,10 +303,26 @@ export async function verifyThreadOwnership(
 }
 
 /**
- * Retrieves a thread with its first user message for auto-naming.
+ * Retrieves a thread with its first user message for auto-naming purposes.
  *
- * @param threadId - The thread ID to look up
- * @returns Thread data with first message or null if not found
+ * This function is specifically designed for the auto-naming feature, which analyzes
+ * the first message in a conversation to generate an appropriate thread title.
+ * It performs a left join to handle threads that might not have any messages yet.
+ *
+ * The query is optimized to fetch only the essential data needed for auto-naming:
+ * - Complete thread metadata (id, name, userId, updatedAt)
+ * - First message content and role for AI analysis
+ *
+ * @param threadId The UUID of the thread to retrieve
+ * @returns Promise resolving to thread data with first message, or null if thread doesn't exist
+ *
+ * @example
+ * ```typescript
+ * const threadData = await getThreadWithFirstMessage('thread-uuid');
+ * if (threadData?.firstMessage) {
+ *   const autoName = await generateThreadName(threadData.firstMessage.content);
+ * }
+ * ```
  */
 export async function getThreadWithFirstMessage(
   threadId: string
@@ -333,28 +349,76 @@ export async function getThreadWithFirstMessage(
 }
 
 /**
- * Updates a thread's name in the database and invalidates cache.
+ * Updates a thread's name in the database with optional conditional update capability.
  *
- * @param threadId - The thread ID to update
- * @param newName - The new name to set
- * @param userId - The user ID for cache invalidation
+ * This function provides atomic thread name updates with built-in race condition protection.
+ * It can optionally check the current thread name before updating to prevent overwrites
+ * during concurrent operations (e.g., auto-naming vs. manual renaming).
+ *
+ * Key behaviors:
+ * - Updates name and updatedAt timestamp atomically
+ * - Returns boolean indicating whether update actually occurred
+ * - Invalidates user's thread cache only if update succeeds
+ * - Supports conditional updates to prevent race conditions
+ *
+ * @param threadId The UUID of the thread to update
+ * @param newName The new name to set for the thread
+ * @param userId The user ID for cache invalidation purposes
+ * @param onlyIfCurrentNameIs Optional condition - only updates if current name matches this exact value
+ * @returns Promise resolving to true if thread was updated, false if no rows were affected
+ *
+ * @example
+ * ```typescript
+ * // Unconditional update
+ * const updated = await updateThreadName('uuid', 'New Name', 'userId');
+ *
+ * // Conditional update (prevents auto-naming from overwriting user changes)
+ * const updated = await updateThreadName(
+ *   'uuid',
+ *   'Auto-generated Name',
+ *   'userId',
+ *   'New Chat' // Only update if still has default name
+ * );
+ * ```
+ *
+ * @throws Error if database operation fails or returns undefined rowCount
  */
 export async function updateThreadName(
   threadId: string,
   newName: string,
-  userId: string
-): Promise<void> {
-  await db
+  userId: string,
+  onlyIfCurrentNameIs?: string
+): Promise<boolean> {
+  // Build where conditions dynamically based on parameters
+  const whereConditions = [eq(threads.id, threadId)];
+
+  // Add conditional name check if specified (prevents race conditions)
+  if (onlyIfCurrentNameIs !== undefined) {
+    whereConditions.push(eq(threads.name, onlyIfCurrentNameIs));
+  }
+
+  // Perform the atomic update with all conditions
+  const result = await db
     .update(threads)
     .set({
       name: newName,
       updatedAt: new Date(),
     })
-    .where(eq(threads.id, threadId));
+    .where(and(...whereConditions));
 
-  // Invalidate user's thread cache to refresh sidebar
-  const cacheTag = getUserThreadsCacheTag(userId);
-  revalidateTag(cacheTag);
+  // Verify the database operation completed successfully
+  if (result.rowCount === null || result.rowCount === undefined) {
+    throw new Error('Database update operation returned undefined rowCount');
+  }
+  const updated = result.rowCount > 0;
+
+  // Only invalidate cache if rows were actually modified (optimization)
+  if (updated) {
+    const cacheTag = getUserThreadsCacheTag(userId);
+    revalidateTag(cacheTag);
+  }
+
+  return updated;
 }
 
 /**

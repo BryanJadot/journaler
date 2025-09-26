@@ -1,22 +1,14 @@
 'use client';
 
-import {
-  EllipsisHorizontalIcon,
-  StarIcon as StarOutlineIcon,
-  TrashIcon,
-} from '@heroicons/react/24/outline';
-import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
-import clsx from 'clsx';
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 
 import {
   deleteThreadAction,
   setThreadStarredAction,
 } from '@/app/journal/chat/actions';
+import { ThreadItem } from '@/app/journal/components/ThreadItem';
 import type { ThreadSummary } from '@/lib/chat/types';
-import { getChatUrl } from '@/lib/chat/url-helpers';
 
 /**
  * Client component that renders navigational links for chat threads with management actions.
@@ -29,11 +21,8 @@ import { getChatUrl } from '@/lib/chat/url-helpers';
  * - Displays starred threads at the top in a fixed section
  * - Shows unstarred threads in a scrollable section below
  * - Highlights currently active thread based on URL pathname
- * - Shows dropdown menu with star/unstar and delete options on hover/focus
- * - Handles thread starring and deletion with proper navigation and cache invalidation
+ * - Delegates individual thread rendering to ThreadItem components
  * - Shows "No threads yet" message when thread list is empty
- * - Truncates long thread names with tooltip showing full text
- * - Manages dropdown state to prevent UI conflicts during actions
  *
  * @param threads Array of thread summaries containing id, name, updatedAt, and starred
  */
@@ -41,8 +30,9 @@ export function SidebarThreadsList({ threads }: { threads: ThreadSummary[] }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Separate starred and unstarred threads for distinct UI sections
-  // Database query already sorts starred first, but we separate them for different container styling
+  // Separate starred and unstarred threads for distinct UI treatment
+  // Database query pre-sorts starred first, but we split them for different layout containers
+  // Starred threads get a fixed, non-scrollable section at the top
   const starredThreads = useMemo(
     () => threads.filter((thread) => thread.starred),
     [threads]
@@ -52,11 +42,8 @@ export function SidebarThreadsList({ threads }: { threads: ThreadSummary[] }) {
     [threads]
   );
 
-  // Map to store dropdown element references for programmatic control
-  // Enables closing dropdowns when actions are triggered to prevent UI conflicts
-  const dropdownRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-
-  // Extract thread ID from pathname (e.g., /journal/chat/uuid)
+  // Extract thread ID from URL path for active thread highlighting
+  // Matches pattern: /journal/chat/{uuid}
   const currentThreadId = useMemo(() => {
     const match = pathname.match(/\/journal\/chat\/([^/]+)/);
     return match?.[1] || null;
@@ -73,17 +60,14 @@ export function SidebarThreadsList({ threads }: { threads: ThreadSummary[] }) {
    * @param starred Whether to star (true) or unstar (false) the thread
    */
   const handleToggleStar = async (threadId: string, starred: boolean) => {
-    // Close the dropdown by removing open attribute
-    const dropdown = dropdownRefs.current.get(threadId);
-    if (dropdown) {
-      dropdown.removeAttribute('open');
-    }
-
     const result = await setThreadStarredAction(threadId, starred);
 
     if (result.success) {
-      // Refresh to update the thread list
+      // Trigger UI refresh to reflect updated star status in sidebar
       router.refresh();
+    } else {
+      // TODO: Consider adding user-facing error feedback for failed star operations
+      console.error('Failed to toggle star status');
     }
   };
 
@@ -91,7 +75,6 @@ export function SidebarThreadsList({ threads }: { threads: ThreadSummary[] }) {
    * Handles the deletion of a chat thread with proper UI feedback and navigation.
    *
    * This function manages the complete flow of thread deletion including:
-   * - Closing any open dropdown menus to prevent UI conflicts
    * - Calling the server action to delete the thread
    * - Handling post-deletion navigation when the current thread is deleted
    * - Triggering sidebar refresh to reflect the updated thread list
@@ -103,106 +86,56 @@ export function SidebarThreadsList({ threads }: { threads: ThreadSummary[] }) {
    * @param threadId The UUID of the thread to delete
    */
   const handleDeleteThread = async (threadId: string) => {
-    // Close the dropdown by removing open attribute
-    const dropdown = dropdownRefs.current.get(threadId);
-    if (dropdown) {
-      dropdown.removeAttribute('open');
-    }
-
     const result = await deleteThreadAction(threadId);
 
     if (result.success) {
-      // If we deleted the current thread, navigate to home
+      // Navigate away from deleted thread if it's currently active
       if (threadId === currentThreadId) {
-        router.push('/');
+        router.push('/'); // Return to journal home page
       }
-      // The sidebar will refresh automatically via cache invalidation
+      // Trigger sidebar refresh - thread cache is already invalidated by server action
       router.refresh();
+    } else {
+      // TODO: Consider adding user-facing error feedback for failed deletions
+      console.error('Failed to delete thread');
     }
   };
 
-  // Helper function to render a single thread item
-  const renderThreadItem = (thread: ThreadSummary) => (
-    <li key={thread.id} className="w-full">
-      <div
-        className={clsx('flex flex-row group w-full p-0', {
-          'menu-active': thread.id === currentThreadId,
-        })}
-      >
-        <Link
-          href={getChatUrl(thread.id)}
-          className="flex-1 min-w-0 pl-3 py-1.5 block"
-          title={thread.name} // Tooltip shows full name for truncated text
-        >
-          <div className="truncate">{thread.name}</div>
-        </Link>
-
-        <div
-          className="shrink-0 dropdown dropdown-end"
-          ref={(el) => {
-            if (el) dropdownRefs.current.set(thread.id, el);
-          }}
-        >
-          <div
-            tabIndex={0}
-            role="button"
-            className="invisible group-hover:visible focus:visible pr-3 py-1.5"
-          >
-            <EllipsisHorizontalIcon className="w-4 h-4" />
-          </div>
-          <ul
-            tabIndex={0}
-            className="menu dropdown-content bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm text-base-content"
-          >
-            <li>
-              <button
-                onClick={() => handleToggleStar(thread.id, !thread.starred)}
-                className="flex flex-row items-center justify-left"
-              >
-                {thread.starred ? (
-                  <>
-                    <StarOutlineIcon className="w-4 h-4" /> Unstar
-                  </>
-                ) : (
-                  <>
-                    <StarSolidIcon className="w-4 h-4" /> Star
-                  </>
-                )}
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => handleDeleteThread(thread.id)}
-                className="flex flex-row items-center justify-left"
-              >
-                <TrashIcon className="w-4 h-4" /> Delete
-              </button>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </li>
-  );
-
   return (
     <>
-      {/* Starred threads section - fixed, non-scrollable */}
+      {/* Starred threads section - fixed position, always visible */}
       {starredThreads.length > 0 && (
         <>
           <div className="shrink-0 border-t border-base-300">
             <ul className="menu w-full">
-              {starredThreads.map(renderThreadItem)}
+              {starredThreads.map((thread) => (
+                <ThreadItem
+                  key={thread.id}
+                  thread={thread}
+                  isActive={thread.id === currentThreadId}
+                  onDelete={handleDeleteThread}
+                  onToggleStar={handleToggleStar}
+                />
+              ))}
             </ul>
           </div>
         </>
       )}
 
-      {/* Unstarred threads section - scrollable */}
+      {/* Unstarred threads section - scrollable container for regular threads */}
       <div className="flex-1 border-t border-base-300 overflow-y-auto">
         <ul className="menu w-full">
-          {unstarredThreads.map(renderThreadItem)}
+          {unstarredThreads.map((thread) => (
+            <ThreadItem
+              key={thread.id}
+              thread={thread}
+              isActive={thread.id === currentThreadId}
+              onDelete={handleDeleteThread}
+              onToggleStar={handleToggleStar}
+            />
+          ))}
 
-          {/* Display helpful message when user has no chat threads */}
+          {/* Show empty state message when user has no threads at all */}
           {threads.length === 0 && (
             <div className="px-3 py-2 text-sm text-neutral italic">
               No threads yet
