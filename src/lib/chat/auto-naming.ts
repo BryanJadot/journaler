@@ -1,8 +1,8 @@
-import OpenAI from 'openai';
 import { ResponseInputItem } from 'openai/resources/responses/responses.mjs';
 
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
 import type { ThreadWithFirstMessage } from '@/lib/db/threads';
+import { openaiClient } from '@/lib/openai/client';
 
 /**
  * Validates if a thread is eligible for auto-naming.
@@ -58,10 +58,6 @@ export function validateThreadForAutoNaming(
 export async function generateThreadName(
   firstMessage: string
 ): Promise<string> {
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-
   const input: ResponseInputItem[] = [
     {
       role: 'user',
@@ -69,7 +65,7 @@ export async function generateThreadName(
     },
   ];
 
-  const response = await openai.responses.create({
+  const response = await openaiClient.responses.create({
     model: 'gpt-5-mini',
     input,
     reasoning: { effort: 'low' },

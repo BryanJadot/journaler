@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import OpenAI from 'openai';
 
 import {
   validateThreadForAutoNaming,
@@ -8,8 +7,14 @@ import {
 import { DEFAULT_THREAD_NAME } from '@/lib/chat/constants';
 import type { ThreadWithFirstMessage } from '@/lib/db/threads';
 
-// Mock OpenAI
-jest.mock('openai');
+// Mock the openaiClient
+jest.mock('@/lib/openai/client', () => ({
+  openaiClient: {
+    responses: {
+      create: jest.fn(),
+    },
+  },
+}));
 
 describe('Auto-naming Service', () => {
   describe('validateThreadForAutoNaming', () => {
@@ -198,18 +203,22 @@ describe('Auto-naming Service', () => {
   });
 
   describe('generateThreadName', () => {
-    type CreateResponse = { output_text?: string | null | undefined };
-    const mockCreate = jest.fn<(input: unknown) => Promise<CreateResponse>>();
+    // Get the mocked create function
+    const mockOpenaiClient = jest.requireMock('@/lib/openai/client') as {
+      openaiClient: {
+        responses: {
+          create: jest.MockedFunction<
+            (
+              input: unknown
+            ) => Promise<{ output_text?: string | null | undefined }>
+          >;
+        };
+      };
+    };
+    const mockCreate = mockOpenaiClient.openaiClient.responses.create;
 
     beforeEach(() => {
       jest.clearAllMocks();
-
-      // Setup OpenAI mock
-      (OpenAI as unknown as jest.Mock).mockImplementation(() => ({
-        responses: {
-          create: mockCreate,
-        },
-      }));
     });
 
     it('should generate a thread name successfully', async () => {
