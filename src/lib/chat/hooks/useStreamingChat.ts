@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 
-import { ChatMessage } from '@/lib/chat/types';
 import { StreamingResponse } from '@/lib/chat/types/streaming';
 import { useThread, useThreadId } from '@/lib/store/thread-store';
 
@@ -12,18 +11,25 @@ type StreamingStatus = 'idle' | 'loading' | 'error';
 /**
  * Makes the API request to send a message to our chat endpoint.
  *
- * Sends the message content along with thread context and conversation history
- * to enable the AI to provide contextually relevant responses.
+ * Sends the message content along with thread context. The conversation
+ * history is loaded server-side from the database for better security
+ * and reduced payload size.
  *
- * @param trimmedContent - The user's message content (whitespace removed)
- * @param threadId - Unique identifier for the conversation thread
- * @param messages - Complete conversation history for context
+ * **Architecture Note:** Unlike many chat implementations that send full
+ * conversation history with each request, this design loads history on
+ * the server. This approach provides:
+ * - Reduced network payload (only new message sent)
+ * - Better security (server controls message access)
+ * - Simplified client state management
+ * - Protection against tampering with conversation history
+ *
+ * @param trimmedContent The user's message content (whitespace removed)
+ * @param threadId Unique identifier for the conversation thread
  * @returns Promise resolving to the fetch Response object
  */
 async function sendMessageRequest(
   trimmedContent: string,
-  threadId: string,
-  messages: ChatMessage[]
+  threadId: string
 ): Promise<Response> {
   return fetch('/api/chat', {
     method: 'POST',
@@ -33,7 +39,6 @@ async function sendMessageRequest(
     body: JSON.stringify({
       message: trimmedContent,
       threadId,
-      history: messages,
     }),
   });
 }
@@ -86,19 +91,25 @@ function processStreamChunk(
  * Processes the JSON stream from the API response.
  *
  * Handles the complexities of streaming JSON over HTTP, including:
- * - Buffering incomplete JSON lines
- * - Parsing line-delimited JSON objects
- * - Error handling for malformed JSON vs streaming errors
- * - Graceful handling of partial reads
+ * - Buffering incomplete JSON lines across HTTP chunks
+ * - Parsing line-delimited JSON objects (JSONL format)
+ * - Error handling for malformed JSON vs intentional streaming errors
+ * - Graceful handling of partial reads and multi-byte characters
  *
- * This is necessary because HTTP streams don't guarantee complete JSON
- * objects in each chunk - we might receive partial lines that need to be
- * buffered and reassembled.
+ * **Why this complexity is necessary:**
+ * HTTP streams don't guarantee complete JSON objects in each chunk. A single
+ * JSON line might be split across multiple HTTP chunks, or multiple complete
+ * JSON lines might arrive in one chunk. This function handles reassembly.
  *
- * @param response - The fetch Response with a readable stream body
- * @param assistantMessageId - ID of the message being updated
- * @param updateAssistantMessage - Function to update message content
- * @param setStatus - Function to update streaming status
+ * **Error handling strategy:**
+ * - JSON parse errors: Log and skip (network corruption, partial reads)
+ * - Streaming errors: Propagate up (intentional errors from AI API)
+ * - Network errors: Propagate up (connection issues)
+ *
+ * @param response The fetch Response with a readable stream body
+ * @param assistantMessageId ID of the message being updated
+ * @param updateAssistantMessage Function to update message content
+ * @param setStatus Function to update streaming status
  * @throws Error for network issues or streaming errors (not JSON parse errors)
  */
 async function processJsonStream(
@@ -239,12 +250,8 @@ function handleStreamingError(
 export function useStreamingChat() {
   const [status, setStatus] = useState<StreamingStatus>('idle');
   const threadId = useThreadId();
-  const {
-    messages,
-    addUserMessage,
-    startAssistantMessage,
-    updateAssistantMessage,
-  } = useThread();
+  const { addUserMessage, startAssistantMessage, updateAssistantMessage } =
+    useThread();
 
   /**
    * Sends a message and streams the AI response in real-time.
@@ -285,11 +292,7 @@ export function useStreamingChat() {
 
       try {
         // Make API request
-        const response = await sendMessageRequest(
-          trimmedContent,
-          threadId,
-          messages
-        );
+        const response = await sendMessageRequest(trimmedContent, threadId);
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -312,13 +315,7 @@ export function useStreamingChat() {
         );
       }
     },
-    [
-      addUserMessage,
-      messages,
-      startAssistantMessage,
-      threadId,
-      updateAssistantMessage,
-    ]
+    [addUserMessage, startAssistantMessage, threadId, updateAssistantMessage]
   );
 
   return {

@@ -85,8 +85,8 @@ export async function getThreadsByUser(userId: string) {
     orderBy: [desc(threads.updatedAt)], // Most recently updated threads first
     with: {
       messages: {
-        orderBy: [desc(messages.id)], // Get the latest message (ID is monotonic)
-        limit: 1, // Only include the most recent message for preview
+        orderBy: [desc(messages.id)], // Get the latest message (ID is auto-increment, so DESC gives newest)
+        limit: 1, // Only include the most recent message for preview in UI
       },
     },
   });
@@ -146,10 +146,15 @@ export function getUserThreadsCacheTag(userId: string): string {
 /**
  * Cached version of getThreadSummariesForUser with user-specific cache invalidation.
  *
- * Uses Next.js unstable_cache to cache thread summaries per user.
- * Cache can be invalidated using the user-specific tag from getUserThreadsCacheTag.
+ * Uses Next.js unstable_cache to cache thread summaries per user for better performance.
+ * This is particularly important for sidebar navigation which renders on every page load.
  *
- * @param userId - The unique identifier of the user whose threads to retrieve
+ * **Cache Strategy:**
+ * - User-specific cache keys prevent cross-user data leakage
+ * - Cache invalidation triggered by thread creation, updates, and deletion
+ * - Tagged caching allows selective invalidation without affecting other users
+ *
+ * @param userId The unique identifier of the user whose threads to retrieve
  * @returns Cached array of thread summaries
  */
 export function getCachedThreadSummaries(userId: string) {
@@ -193,7 +198,7 @@ export async function getMostRecentThread(userId: string) {
     orderBy: [desc(threads.updatedAt)], // Find the most recently updated thread
     with: {
       messages: {
-        orderBy: [messages.id], // Messages in chronological order (ID is monotonic)
+        orderBy: [messages.id], // Messages in chronological order (auto-increment ID ensures proper ordering)
       },
     },
   });
@@ -255,7 +260,7 @@ export async function getThreadWithMessages(threadId: string) {
     where: eq(threads.id, threadId),
     with: {
       messages: {
-        orderBy: [messages.id], // Messages in chronological order (ID is monotonic)
+        orderBy: [messages.id], // Messages in chronological order (auto-increment ID ensures proper ordering)
       },
     },
   });
@@ -471,14 +476,21 @@ export async function setThreadStarred(
  * with the thread (to satisfy foreign key constraints), then deletes the thread
  * itself. The operation is atomic - either both operations succeed or both fail.
  *
- * Safety features:
+ * **Safety features:**
  * - Validates thread ID is a proper UUID format before attempting deletion
  * - Uses database transaction to maintain referential integrity
  * - Throws an error for invalid or empty thread IDs to catch bugs early
  * - Invalidates user's thread cache to trigger UI updates
  *
+ * **Important Security Note:**
  * This function does NOT perform ownership verification - that should be handled
  * at the application layer (e.g., in server actions) before calling this function.
+ * Always verify thread ownership before calling deleteThread to prevent unauthorized deletions.
+ *
+ * **Database Design Consideration:**
+ * The order of operations (messages first, then thread) is critical because
+ * of foreign key constraints. Messages reference threads, so the thread cannot
+ * be deleted while messages still reference it.
  *
  * @param threadId The UUID of the thread to delete
  * @param userId The user ID for cache invalidation purposes
@@ -486,10 +498,12 @@ export async function setThreadStarred(
  *
  * @example
  * ```typescript
- * // Typically called from a server action after ownership verification
+ * // Typical usage in a server action with ownership verification
  * const isOwner = await verifyThreadOwnership(threadId, userId);
  * if (isOwner) {
  *   await deleteThread(threadId, userId);
+ * } else {
+ *   throw new Error('Unauthorized: Cannot delete thread');
  * }
  * ```
  */

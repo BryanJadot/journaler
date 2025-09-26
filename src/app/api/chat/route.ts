@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { streamOpenAITokens } from '@/app/api/chat/stream-openai-tokens';
 import { getUserIdFromHeader } from '@/lib/auth/get-user-from-header';
-import { ChatMessage } from '@/lib/chat/types';
+import { convertDatabaseMessagesToChatMessages } from '@/lib/chat/message-helpers';
 import { StreamingResponse } from '@/lib/chat/types/streaming';
 import { saveMessage } from '@/lib/db/messages';
-import { verifyThreadOwnership } from '@/lib/db/threads';
+import { verifyThreadOwnership, getThreadWithMessages } from '@/lib/db/threads';
 import { fireAndForget } from '@/lib/internal/fire-and-forget';
 import { openaiClient } from '@/lib/openai/client';
 
 // Allow up to 2 minutes for AI generation
+// This accounts for complex conversations and potential API latency
 export const maxDuration = 120;
 
 /**
@@ -73,25 +74,35 @@ export async function POST(request: NextRequest) {
     const userId = await getUserIdFromHeader();
 
     // Parse the incoming JSON request body
-    // Expected format: { message: string, threadId: string, history?: ChatMessage[] }
+    // Expected format: { message: string, threadId: string }
     const {
       message: newMessage,
       threadId,
-      history,
     }: {
       message: string;
       threadId: string;
-      history: ChatMessage[];
     } = await request.json();
 
     // Perform comprehensive validation including security checks
     // This ensures data integrity and prevents unauthorized thread access
     await validateChatRequest(newMessage, threadId, userId);
 
+    // Load thread with all existing messages from database
+    // Note: verifyThreadOwnership already confirmed existence, but we need full data
+    const thread = await getThreadWithMessages(threadId);
+    if (!thread) {
+      throw new Error('Thread not found');
+    }
+
+    // Convert database messages to ChatMessage format for OpenAI
+    // This ensures proper type compatibility and serialization
+    const history = convertDatabaseMessagesToChatMessages(thread.messages);
+
     // Save the user's message to the database immediately
     await saveMessage(threadId, 'user', newMessage, 'text');
 
     // Fire-and-forget call to auto-name the thread if this is the first message
+    // This happens asynchronously to avoid blocking the chat response
     if (history.length === 0) {
       fireAndForget(userId, '/api/threads/auto-name', {
         method: 'POST',
@@ -100,22 +111,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Set up JSON streaming response
+    // Set up JSON streaming response infrastructure
     const encoder = new TextEncoder();
-    let fullResponse = '';
+    let fullResponse = ''; // Accumulates complete response for database storage
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
           // Generate streaming response using OpenAI Responses API
+          // This yields individual tokens as they arrive from OpenAI
           for await (const chunk of streamOpenAITokens(
             openaiClient,
             history,
             newMessage
           )) {
-            fullResponse += chunk;
+            fullResponse += chunk; // Build complete response for persistence
 
-            // Send chunk as JSON
+            // Send chunk as JSON-delimited streaming event
             const chunkResponse: StreamingResponse = {
               type: 'chunk',
               content: chunk,
@@ -124,18 +136,19 @@ export async function POST(request: NextRequest) {
             controller.enqueue(encoder.encode(jsonData));
           }
 
-          // Send completion event
+          // Send completion event to signal end of streaming
           const completionResponse: StreamingResponse = { type: 'complete' };
           const completionData = JSON.stringify(completionResponse) + '\n';
           controller.enqueue(encoder.encode(completionData));
 
           // Save the complete assistant response to database
           // TODO: save the message with a timestamp of when it starts streaming.
+          // Currently uses completion timestamp, but start timestamp would be more accurate
           await saveMessage(threadId, 'assistant', fullResponse, 'text');
 
           controller.close();
         } catch (error) {
-          // Send error event
+          // Send error event to client for user feedback
           const errorResponse: StreamingResponse = {
             type: 'error',
             error:
@@ -146,7 +159,8 @@ export async function POST(request: NextRequest) {
           const errorData = JSON.stringify(errorResponse) + '\n';
           controller.enqueue(encoder.encode(errorData));
 
-          // Save error message to database for debugging
+          // Save error message to database for debugging and conversation continuity
+          // This allows users to see what went wrong and retry if needed
           await saveMessage(
             threadId,
             'assistant',
@@ -159,14 +173,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Return streaming JSON response with proper headers
+    // Return streaming JSON response with proper headers for real-time communication
     return new Response(stream, {
       headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Content-Type': 'application/json', // JSON streaming format
+        'Cache-Control': 'no-cache', // Prevent caching of streaming responses
+        Connection: 'keep-alive', // Maintain connection during streaming
+        'Access-Control-Allow-Origin': '*', // Allow cross-origin requests if needed
+        'Access-Control-Allow-Headers': 'Content-Type', // Required headers for CORS
       },
     });
   } catch (error) {

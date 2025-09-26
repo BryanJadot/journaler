@@ -12,6 +12,7 @@ jest.mock('@/lib/auth/get-user-from-header');
 // Mock the chat service functions
 jest.mock('@/lib/db/threads', () => ({
   verifyThreadOwnership: jest.fn(),
+  getThreadWithMessages: jest.fn(),
 }));
 
 jest.mock('@/lib/db/messages', () => ({
@@ -46,6 +47,10 @@ const mockSaveMessage = messagesService.saveMessage as jest.MockedFunction<
 const mockVerifyThreadOwnership =
   threadsService.verifyThreadOwnership as jest.MockedFunction<
     typeof threadsService.verifyThreadOwnership
+  >;
+const mockGetThreadWithMessages =
+  threadsService.getThreadWithMessages as jest.MockedFunction<
+    typeof threadsService.getThreadWithMessages
   >;
 
 // Get mock streamOpenAITokens function
@@ -85,12 +90,11 @@ describe('/api/chat POST', () => {
    */
   const createRequest = (
     message = 'Hello',
-    threadId = '550e8400-e29b-41d4-a716-446655440001', // Default UUID for testing
-    history: ChatMessage[] = []
+    threadId = '550e8400-e29b-41d4-a716-446655440001' // Default UUID for testing
   ) => {
     return new NextRequest('http://localhost/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ message, threadId, history }),
+      body: JSON.stringify({ message, threadId }),
       headers: { 'Content-Type': 'application/json' },
     });
   };
@@ -144,6 +148,16 @@ describe('/api/chat POST', () => {
     // Mock successful thread ownership verification by default
     // Individual tests can override this for error scenarios
     mockVerifyThreadOwnership.mockResolvedValue(true);
+
+    // Mock successful thread retrieval with empty messages by default
+    mockGetThreadWithMessages.mockResolvedValue({
+      id: '550e8400-e29b-41d4-a716-446655440001',
+      name: 'Test Thread',
+      userId: 'user-123',
+      updatedAt: new Date(),
+      starred: false,
+      messages: [],
+    });
 
     // Mock successful message saving with realistic return data
     mockSaveMessage.mockResolvedValue({
@@ -278,19 +292,46 @@ describe('/api/chat POST', () => {
         id: '1',
         role: 'user',
         content: 'Hello',
-        createdAt: '2023-01-01T00:00:00Z',
+        createdAt: '2023-01-01T00:00:00.000Z',
       },
       {
         id: '2',
         role: 'assistant',
         content: 'Hi there!',
-        createdAt: '2023-01-01T00:01:00Z',
+        createdAt: '2023-01-01T00:01:00.000Z',
       },
     ];
 
     mockGetUserIdFromHeader.mockResolvedValue(userId);
 
-    const request = createRequest(message, threadId, history);
+    // Mock thread with existing messages
+    mockGetThreadWithMessages.mockResolvedValue({
+      id: threadId,
+      name: 'Test Thread',
+      userId,
+      updatedAt: new Date(),
+      starred: false,
+      messages: [
+        {
+          id: 1,
+          threadId,
+          role: 'user',
+          content: 'Hello',
+          outputType: 'text',
+          createdAt: new Date('2023-01-01T00:00:00Z'),
+        },
+        {
+          id: 2,
+          threadId,
+          role: 'assistant',
+          content: 'Hi there!',
+          outputType: 'text',
+          createdAt: new Date('2023-01-01T00:01:00Z'),
+        },
+      ],
+    });
+
+    const request = createRequest(message, threadId);
     await POST(request);
 
     expect(mockStreamOpenAITokens).toHaveBeenCalledWith(
@@ -360,8 +401,7 @@ describe('/api/chat POST', () => {
 
     const request = createRequest(
       'Hello',
-      '550e8400-e29b-41d4-a716-446655440001',
-      []
+      '550e8400-e29b-41d4-a716-446655440001'
     );
     await POST(request);
 

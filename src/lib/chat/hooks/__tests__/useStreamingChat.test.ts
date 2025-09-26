@@ -168,7 +168,6 @@ describe('useStreamingChat', () => {
       body: JSON.stringify({
         message: 'Test message',
         threadId: 'thread-123',
-        history: mockMessages,
       }),
     });
 
@@ -397,7 +396,6 @@ describe('useStreamingChat', () => {
         body: JSON.stringify({
           message: 'Test message',
           threadId: 'thread-123',
-          history: mockMessages,
         }),
       })
     );
