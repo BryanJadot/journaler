@@ -85,7 +85,7 @@ export async function getThreadsByUser(userId: string) {
     orderBy: [desc(threads.updatedAt)], // Most recently updated threads first
     with: {
       messages: {
-        orderBy: [desc(messages.createdAt)], // Get the latest message
+        orderBy: [desc(messages.id)], // Get the latest message (ID is monotonic)
         limit: 1, // Only include the most recent message for preview
       },
     },
@@ -193,7 +193,7 @@ export async function getMostRecentThread(userId: string) {
     orderBy: [desc(threads.updatedAt)], // Find the most recently updated thread
     with: {
       messages: {
-        orderBy: [messages.createdAt], // Messages in chronological order (oldest first)
+        orderBy: [messages.id], // Messages in chronological order (ID is monotonic)
       },
     },
   });
@@ -255,7 +255,7 @@ export async function getThreadWithMessages(threadId: string) {
     where: eq(threads.id, threadId),
     with: {
       messages: {
-        orderBy: [messages.createdAt], // Messages in chronological order for conversation flow
+        orderBy: [messages.id], // Messages in chronological order (ID is monotonic)
       },
     },
   });
@@ -338,7 +338,7 @@ export async function getThreadWithFirstMessage(
     .from(threads)
     .leftJoin(messages, eq(messages.threadId, threads.id))
     .where(eq(threads.id, threadId))
-    .orderBy(messages.createdAt)
+    .orderBy(messages.id)
     .limit(1);
 
   if (threadWithMessages.length === 0) {
