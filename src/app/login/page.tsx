@@ -63,7 +63,7 @@ export default function LoginPage() {
             </button>
 
             <div className="text-center">
-              <p className="text-sm text-neutral">
+              <p className="text-sm">
                 Don&#39;t have an account?{' '}
                 <Link href="/signup" className="font-medium link">
                   Sign up

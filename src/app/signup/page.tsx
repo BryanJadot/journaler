@@ -62,7 +62,7 @@ export default function SignupPage() {
             </button>
 
             <div className="text-center">
-              <p className="text-sm text-neutral">
+              <p className="text-sm">
                 Already have an account?{' '}
                 <Link href="/login" className="font-medium link">
                   Sign in
