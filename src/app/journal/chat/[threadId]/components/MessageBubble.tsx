@@ -30,20 +30,22 @@ interface MessageBubbleProps {
  */
 function MessageBubbleInner({ message }: MessageBubbleProps) {
   return (
-    <ReactMarkdown
-      components={{
-        // Strip code formatting to maintain conversational tone in therapy context
-        code({ children }) {
-          return <>{children}</>;
-        },
-        // Remove preformatted block styling for the same therapeutic UX reasons
-        pre({ children }) {
-          return <>{children}</>;
-        },
-      }}
-    >
-      {message.content}
-    </ReactMarkdown>
+    <div className="prose prose-md leading-snug">
+      <ReactMarkdown
+        components={{
+          // Strip code formatting to maintain conversational tone in therapy context
+          code({ children }) {
+            return <>{children}</>;
+          },
+          // Remove preformatted block styling for the same therapeutic UX reasons
+          pre({ children }) {
+            return <>{children}</>;
+          },
+        }}
+      >
+        {message.content}
+      </ReactMarkdown>
+    </div>
   );
 }
 
@@ -61,7 +63,7 @@ function MessageBubbleInner({ message }: MessageBubbleProps) {
 function UserMessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className="chat chat-end">
-      <div className="chat-bubble text-md">
+      <div className="chat-bubble">
         <MessageBubbleInner message={message} />
       </div>
     </div>
@@ -86,7 +88,7 @@ function UserMessageBubble({ message }: MessageBubbleProps) {
  */
 function AssistantMessageBubble({ message }: MessageBubbleProps) {
   return (
-    <div className="prose prose-md max-w-full">
+    <div className="max-w-full">
       <MessageBubbleInner message={message} />
     </div>
   );
