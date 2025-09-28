@@ -30,7 +30,7 @@ interface MessageBubbleProps {
  */
 function MessageBubbleInner({ message }: MessageBubbleProps) {
   return (
-    <div className="prose prose-md leading-snug">
+    <div className="prose prose-md leading-snug max-w-full">
       <ReactMarkdown
         components={{
           // Strip code formatting to maintain conversational tone in therapy context
@@ -63,7 +63,7 @@ function MessageBubbleInner({ message }: MessageBubbleProps) {
 function UserMessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className="chat chat-end">
-      <div className="chat-bubble">
+      <div className="chat-bubble max-w-lg">
         <MessageBubbleInner message={message} />
       </div>
     </div>
