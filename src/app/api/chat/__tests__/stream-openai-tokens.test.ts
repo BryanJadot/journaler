@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 
 import {
   streamOpenAITokens,
-  THERAPY_ASSISTANT_INSTRUCTIONS,
+  THERAPY_ASSISTANT_PROMPT_ID,
 } from '@/app/api/chat/stream-openai-tokens';
 import { ChatMessage } from '@/lib/chat/types';
 
@@ -55,14 +55,17 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
+      prompt: {
+        id: THERAPY_ASSISTANT_PROMPT_ID,
+      },
       model: 'gpt-5-mini',
       reasoning: { effort: 'low' },
+      text: { verbosity: 'medium' },
       input: [
         { role: 'user', content: 'Hello' },
         { role: 'assistant', content: 'Hi there!' },
         { role: 'user', content: 'How are you?' },
       ],
-      instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
 
@@ -122,10 +125,13 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
+      prompt: {
+        id: THERAPY_ASSISTANT_PROMPT_ID,
+      },
       model: 'gpt-5-mini',
       reasoning: { effort: 'low' },
+      text: { verbosity: 'medium' },
       input: [{ role: 'user', content: 'First message' }],
-      instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
 
@@ -262,15 +268,18 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
+      prompt: {
+        id: THERAPY_ASSISTANT_PROMPT_ID,
+      },
       model: 'gpt-5-mini',
       reasoning: { effort: 'low' },
+      text: { verbosity: 'medium' },
       input: [
         { role: 'system', content: 'You are helpful' },
         { role: 'user', content: 'Hi' },
         { role: 'assistant', content: 'Hello!' },
         { role: 'user', content: 'How can you help?' },
       ],
-      instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
   });
 
@@ -297,10 +306,13 @@ describe('streamOpenAITokens', () => {
     }
 
     expect(mockClient.responses.stream).toHaveBeenCalledWith({
+      prompt: {
+        id: THERAPY_ASSISTANT_PROMPT_ID,
+      },
       model: 'gpt-5-mini',
       reasoning: { effort: 'low' },
+      text: { verbosity: 'medium' },
       input: [{ role: 'user', content: 'Test message' }],
-      instructions: THERAPY_ASSISTANT_INSTRUCTIONS,
     });
     expect(results).toEqual(['Test']);
   });
