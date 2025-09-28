@@ -1,4 +1,4 @@
-import { PlusCircleIcon } from '@heroicons/react/24/outline';
+import { DocumentPlusIcon } from '@heroicons/react/24/outline';
 import { Suspense } from 'react';
 
 import { createNewThreadAction } from '@/app/journal/chat/actions';
@@ -65,7 +65,7 @@ export function SidebarContents() {
         <ul className="menu w-full">
           <li>
             <button type="submit" className="flex items-center gap-1.5">
-              <PlusCircleIcon className="w-4 h-4" />
+              <DocumentPlusIcon className="w-4 h-4" />
               New Chat
             </button>
           </li>
