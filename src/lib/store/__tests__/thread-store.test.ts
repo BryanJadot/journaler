@@ -10,6 +10,13 @@ import {
   useThreadId,
   useThreadMessages,
   useThreadName,
+  useInputValue,
+  useSetInputValue,
+  useSelectedText,
+  useTooltipPosition,
+  useSetSelectionAndTooltipPosition,
+  useClearSelection,
+  useQuoteSelection,
 } from '@/lib/store/thread-store';
 
 // Mock message data for testing store operations
@@ -334,6 +341,251 @@ describe('thread-store', () => {
       });
 
       expect(messagesResult.current).toEqual([mockMessage1]);
+    });
+  });
+
+  describe('input and selection functionality', () => {
+    it('should manage input value', () => {
+      const { result: inputResult } = renderHook(() => useInputValue());
+      const { result: setInputResult } = renderHook(() => useSetInputValue());
+
+      // Initial input should be empty
+      expect(inputResult.current).toBe('');
+
+      // Set input value
+      act(() => {
+        setInputResult.current('Hello world');
+      });
+
+      expect(inputResult.current).toBe('Hello world');
+
+      // Update input value
+      act(() => {
+        setInputResult.current('Updated text');
+      });
+
+      expect(inputResult.current).toBe('Updated text');
+    });
+
+    it('should manage selection and tooltip position', () => {
+      const { result: selectedTextResult } = renderHook(() =>
+        useSelectedText()
+      );
+      const { result: tooltipPositionResult } = renderHook(() =>
+        useTooltipPosition()
+      );
+      const { result: setSelectionResult } = renderHook(() =>
+        useSetSelectionAndTooltipPosition()
+      );
+      const { result: clearSelectionResult } = renderHook(() =>
+        useClearSelection()
+      );
+
+      // Initial state should be null
+      expect(selectedTextResult.current).toBeNull();
+      expect(tooltipPositionResult.current).toBeNull();
+
+      // Set selection and position
+      act(() => {
+        setSelectionResult.current('Selected text', { top: 100, left: 200 });
+      });
+
+      expect(selectedTextResult.current).toBe('Selected text');
+      expect(tooltipPositionResult.current).toEqual({ top: 100, left: 200 });
+
+      // Clear selection
+      act(() => {
+        clearSelectionResult.current();
+      });
+
+      expect(selectedTextResult.current).toBeNull();
+      expect(tooltipPositionResult.current).toBeNull();
+    });
+
+    it('should quote single line selection with empty input', () => {
+      const { result: threadResult } = renderHook(() => useThread());
+      const { result: inputResult } = renderHook(() => useInputValue());
+      const { result: quoteResult } = renderHook(() => useQuoteSelection());
+
+      // Set up selection
+      act(() => {
+        threadResult.current.setSelectionAndTooltipPosition(
+          'This is a selected line',
+          { top: 50, left: 100 }
+        );
+      });
+
+      // Quote the selection
+      act(() => {
+        quoteResult.current();
+      });
+
+      // Should format with no preceding newline when input is empty
+      expect(inputResult.current).toBe('> This is a selected line\n\n');
+
+      // Selection should be cleared
+      expect(threadResult.current.selectedText).toBeNull();
+      expect(threadResult.current.tooltipPosition).toBeNull();
+    });
+
+    it('should quote single line selection with existing input', () => {
+      const { result: threadResult } = renderHook(() => useThread());
+      const { result: inputResult } = renderHook(() => useInputValue());
+      const { result: quoteResult } = renderHook(() => useQuoteSelection());
+
+      // Set existing input
+      act(() => {
+        threadResult.current.setInputValue('Existing text');
+      });
+
+      // Set up selection
+      act(() => {
+        threadResult.current.setSelectionAndTooltipPosition('Quote this', {
+          top: 50,
+          left: 100,
+        });
+      });
+
+      // Quote the selection
+      act(() => {
+        quoteResult.current();
+      });
+
+      // Should add newline before quote when input exists
+      expect(inputResult.current).toBe('Existing text\n> Quote this\n\n');
+    });
+
+    it('should quote multi-line selection correctly', () => {
+      const { result: threadResult } = renderHook(() => useThread());
+      const { result: inputResult } = renderHook(() => useInputValue());
+      const { result: quoteResult } = renderHook(() => useQuoteSelection());
+
+      // Set up multi-line selection
+      act(() => {
+        threadResult.current.setSelectionAndTooltipPosition(
+          'Line 1\nLine 2\nLine 3',
+          { top: 50, left: 100 }
+        );
+      });
+
+      // Quote the selection
+      act(() => {
+        quoteResult.current();
+      });
+
+      // Each line should be prefixed with >
+      expect(inputResult.current).toBe('> Line 1\n> Line 2\n> Line 3\n\n');
+    });
+
+    it('should handle quoting with no selection', () => {
+      const { result: inputResult } = renderHook(() => useInputValue());
+      const { result: quoteResult } = renderHook(() => useQuoteSelection());
+      const { result: setInputResult } = renderHook(() => useSetInputValue());
+
+      // Set some input
+      act(() => {
+        setInputResult.current('Initial text');
+      });
+
+      // Try to quote without any selection
+      act(() => {
+        quoteResult.current();
+      });
+
+      // Input should remain unchanged
+      expect(inputResult.current).toBe('Initial text');
+    });
+
+    it('should append multiple quotes to input', () => {
+      const { result: threadResult } = renderHook(() => useThread());
+      const { result: inputResult } = renderHook(() => useInputValue());
+      const { result: quoteResult } = renderHook(() => useQuoteSelection());
+
+      // First quote
+      act(() => {
+        threadResult.current.setSelectionAndTooltipPosition('First quote', {
+          top: 50,
+          left: 100,
+        });
+      });
+
+      act(() => {
+        quoteResult.current();
+      });
+
+      expect(inputResult.current).toBe('> First quote\n\n');
+
+      // Second quote - should append to existing
+      act(() => {
+        threadResult.current.setSelectionAndTooltipPosition('Second quote', {
+          top: 60,
+          left: 110,
+        });
+      });
+
+      act(() => {
+        quoteResult.current();
+      });
+
+      expect(inputResult.current).toBe('> First quote\n\n\n> Second quote\n\n');
+    });
+
+    it('should reset input and selection state during thread reinitialization', () => {
+      const { result: threadResult } = renderHook(() => useThread());
+      const { result: inputResult } = renderHook(() => useInputValue());
+      const { result: selectedTextResult } = renderHook(() =>
+        useSelectedText()
+      );
+      const { result: tooltipPositionResult } = renderHook(() =>
+        useTooltipPosition()
+      );
+
+      // Set input value and selection
+      act(() => {
+        threadResult.current.setInputValue('My draft message');
+        threadResult.current.setSelectionAndTooltipPosition('Selected text', {
+          top: 100,
+          left: 200,
+        });
+      });
+
+      expect(inputResult.current).toBe('My draft message');
+      expect(selectedTextResult.current).toBe('Selected text');
+      expect(tooltipPositionResult.current).toEqual({ top: 100, left: 200 });
+
+      // Reinitialize thread
+      act(() => {
+        threadResult.current.initializeThread('new-thread', 'New Thread', []);
+      });
+
+      // All state should be reset when loading a new thread
+      expect(inputResult.current).toBe('');
+      expect(selectedTextResult.current).toBeNull();
+      expect(tooltipPositionResult.current).toBeNull();
+    });
+
+    it('should handle empty lines in multi-line quotes', () => {
+      const { result: threadResult } = renderHook(() => useThread());
+      const { result: inputResult } = renderHook(() => useInputValue());
+      const { result: quoteResult } = renderHook(() => useQuoteSelection());
+
+      // Set up selection with empty lines
+      act(() => {
+        threadResult.current.setSelectionAndTooltipPosition(
+          'Line 1\n\nLine 3\n\n\nLine 6',
+          { top: 50, left: 100 }
+        );
+      });
+
+      // Quote the selection
+      act(() => {
+        quoteResult.current();
+      });
+
+      // Empty lines should also get > prefix
+      expect(inputResult.current).toBe(
+        '> Line 1\n> \n> Line 3\n> \n> \n> Line 6\n\n'
+      );
     });
   });
 

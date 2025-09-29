@@ -23,13 +23,22 @@ interface ThreadState {
    * and client only renders newly added messages to prevent duplication.
    */
   newMessageIds: Set<string>;
+  /** Current value of the chat input field */
+  inputValue: string;
+  /** Currently selected text from assistant messages */
+  selectedText: string | null;
+  /** Position for the selection tooltip relative to viewport */
+  tooltipPosition: { top: number; left: number } | null;
 }
 
 /**
  * Thread store actions interface
  *
  * Defines all operations for managing thread state, designed to support
- * streaming chat with proper message lifecycle management.
+ * streaming chat with proper message lifecycle management. Actions are organized
+ * around the chat message lifecycle: adding user messages, creating assistant
+ * message placeholders, updating streaming content, and managing text selection
+ * for quoting functionality.
  */
 interface ThreadActions {
   /**
@@ -74,6 +83,33 @@ interface ThreadActions {
     threadName: string,
     messages: ChatMessage[]
   ) => void;
+
+  /**
+   * Updates the chat input field value.
+   * @param value - The new input value
+   */
+  setInputValue: (value: string) => void;
+
+  /**
+   * Sets the selected text and tooltip position for quoting.
+   * @param text - The selected text from an assistant message
+   * @param position - The viewport position for the tooltip
+   */
+  setSelectionAndTooltipPosition: (
+    text: string,
+    position: { top: number; left: number }
+  ) => void;
+
+  /**
+   * Clears the current selection and hides the tooltip.
+   */
+  clearSelection: () => void;
+
+  /**
+   * Quotes the selected text into the chat input with markdown formatting.
+   * Formats multi-line selections with > prefix on each line.
+   */
+  quoteSelection: () => void;
 }
 
 /**
@@ -103,12 +139,15 @@ type ThreadStore = ThreadState & ThreadActions;
  */
 export const useThread = create<ThreadStore>()(
   devtools(
-    (set, _get) => ({
+    (set, get) => ({
       // Initial state
       threadId: '',
       threadName: '',
       messages: [],
       newMessageIds: new Set(),
+      inputValue: '',
+      selectedText: null,
+      tooltipPosition: null,
 
       setMessages: (messages) => set({ messages }, false, 'setMessages'),
 
@@ -178,13 +217,62 @@ export const useThread = create<ThreadStore>()(
       },
 
       initializeThread: (threadId, threadName, messages) =>
-        // Initialize with server data and clear newMessageIds
-        // This ensures server messages are not treated as "new" client messages
+        // Initialize with server data and reset all state
+        // This ensures a clean slate when loading a thread
         set(
-          { threadId, threadName, messages, newMessageIds: new Set() },
+          {
+            threadId,
+            threadName,
+            messages,
+            newMessageIds: new Set(),
+            inputValue: '',
+            selectedText: null,
+            tooltipPosition: null,
+          },
           false,
           'initializeThread'
         ),
+
+      setInputValue: (value) =>
+        set({ inputValue: value }, false, 'setInputValue'),
+
+      setSelectionAndTooltipPosition: (text, position) =>
+        set(
+          { selectedText: text, tooltipPosition: position },
+          false,
+          'setSelectionAndTooltipPosition'
+        ),
+
+      clearSelection: () =>
+        set(
+          { selectedText: null, tooltipPosition: null },
+          false,
+          'clearSelection'
+        ),
+
+      quoteSelection: () => {
+        const state = get();
+        if (!state.selectedText) return;
+
+        // Format the selected text as a markdown quote
+        const lines = state.selectedText.split('\n');
+        const quoted = lines.map((line) => `> ${line}`).join('\n');
+
+        // Smart formatting: no preceding newline if input is empty
+        const newInput = state.inputValue
+          ? state.inputValue + '\n' + quoted + '\n\n'
+          : quoted + '\n\n';
+
+        set(
+          {
+            inputValue: newInput,
+            selectedText: null,
+            tooltipPosition: null,
+          },
+          false,
+          'quoteSelection'
+        );
+      },
     }),
     {
       name: 'thread-store',
@@ -244,3 +332,42 @@ export const useNewMessages = () => {
     [messages, newMessageIds]
   );
 };
+
+/**
+ * Hook to get the chat input value
+ */
+export const useInputValue = () => useThread((state) => state.inputValue);
+
+/**
+ * Hook to set the chat input value
+ */
+export const useSetInputValue = () => useThread((state) => state.setInputValue);
+
+/**
+ * Hook to get the selected text
+ */
+export const useSelectedText = () => useThread((state) => state.selectedText);
+
+/**
+ * Hook to get the tooltip position
+ */
+export const useTooltipPosition = () =>
+  useThread((state) => state.tooltipPosition);
+
+/**
+ * Hook to set selection and tooltip position
+ */
+export const useSetSelectionAndTooltipPosition = () =>
+  useThread((state) => state.setSelectionAndTooltipPosition);
+
+/**
+ * Hook to clear selection
+ */
+export const useClearSelection = () =>
+  useThread((state) => state.clearSelection);
+
+/**
+ * Hook to quote the current selection
+ */
+export const useQuoteSelection = () =>
+  useThread((state) => state.quoteSelection);

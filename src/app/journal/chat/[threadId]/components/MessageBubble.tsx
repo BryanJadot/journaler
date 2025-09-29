@@ -82,13 +82,17 @@ function UserMessageBubble({ message }: MessageBubbleProps) {
  * The max-w-full ensures the content can use available width without
  * being constrained by prose's default max-width limitations.
  *
+ * The data-selectable="true" attribute enables text selection for the
+ * quoting workflow, allowing users to select portions of responses for
+ * follow-up messages.
+ *
  * @param message - The assistant's chat message to display with prose formatting
- * @returns A prose-styled container for enhanced readability of longer responses
+ * @returns A prose-styled container optimized for readability and text selection
  * @internal
  */
 function AssistantMessageBubble({ message }: MessageBubbleProps) {
   return (
-    <div className="max-w-full">
+    <div className="max-w-full" data-selectable="true">
       <MessageBubbleInner message={message} />
     </div>
   );
@@ -97,29 +101,19 @@ function AssistantMessageBubble({ message }: MessageBubbleProps) {
 /**
  * Individual message bubble component for displaying a single chat message.
  *
- * This is a pure presentational component that handles the visual rendering
- * of chat messages with role-based styling differentiation. The component
- * provides a consistent interface while delegating to specialized sub-components
- * for different message types.
- *
- * Key features:
- * - Markdown support with therapy-specific customizations (no code highlighting)
- * - Role-based visual differentiation (user bubbles vs assistant prose)
- * - Graceful handling of unknown message roles
- * - Optimized for therapeutic conversation UX
+ * Pure presentational component with role-based styling differentiation.
+ * Delegates to specialized sub-components for different message types.
  *
  * Design decisions:
  * - User messages use chat bubbles for familiar messaging app experience
  * - Assistant messages use prose styling for better readability of longer responses
- * - Code blocks are rendered as plain text to maintain conversational tone
+ * - Code blocks rendered as plain text to maintain conversational tone (therapeutic UX)
  *
  * @param message - The chat message object containing role, content, and metadata
  * @returns A React component rendering the message with role-appropriate styling, or null for unknown roles
- * @throws No exceptions - gracefully handles all message types including unknown roles
  *
  * @example
  * ```tsx
- * // User message with markdown formatting
  * <MessageBubble
  *   message={{
  *     id: '123',
@@ -128,32 +122,19 @@ function AssistantMessageBubble({ message }: MessageBubbleProps) {
  *     createdAt: '2024-01-15T10:30:00Z'
  *   }}
  * />
- *
- * // Assistant message with longer response
- * <MessageBubble
- *   message={{
- *     id: '456',
- *     role: 'assistant',
- *     content: 'Thank you for sharing. Here are some thoughts...',
- *     createdAt: '2024-01-15T10:31:00Z'
- *   }}
- * />
  * ```
  */
 export function MessageBubble({ message }: MessageBubbleProps) {
-  // Route to appropriate sub-component based on message role for different visual treatments
+  // Route to appropriate sub-component based on message role
   switch (message.role) {
     case 'user':
-      // User messages get chat bubble styling for familiar messaging UX
       return <UserMessageBubble message={message} />;
 
     case 'assistant':
-      // Assistant messages get prose styling for better readability of longer responses
       return <AssistantMessageBubble message={message} />;
 
     default:
-      // Gracefully handle unknown roles (developer, system) by rendering nothing
-      // This prevents UI breaks if new roles are added or data contains unexpected values
+      // Gracefully handle unknown roles by rendering nothing
       return null;
   }
 }
