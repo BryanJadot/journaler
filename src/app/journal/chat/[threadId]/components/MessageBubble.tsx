@@ -1,6 +1,8 @@
-import ReactMarkdown from 'react-markdown';
+import dynamic from 'next/dynamic';
 
 import { ChatMessage } from '@/lib/chat/types';
+
+const ReactMarkdown = dynamic(() => import('react-markdown'));
 
 /**
  * Props for the MessageBubble component and its internal variants.
