@@ -114,7 +114,7 @@ function ChatTextarea({
       onKeyDown={onKeyDown}
       placeholder={placeholder}
       disabled={disabled}
-      className="textarea textarea-primary w-full text-md min-h-[2.5rem] py-2 overflow-hidden"
+      className="textarea textarea-primary w-full text-base min-h-[2.5rem] py-2 overflow-hidden"
       style={{ resize: 'none' }}
       rows={1}
     />
@@ -196,7 +196,7 @@ export function ChatInputForm({ onMessageSent, ref }: ChatInputFormProps) {
     <form onSubmit={handleSubmit} className="pb-1 px-3">
       <ChatTextarea
         value={input}
-        placeholder="Send a message..."
+        placeholder="What’s on your mind?"
         onChange={setInput}
         disabled={status === 'loading'}
         onKeyDown={handleKeyDown}
