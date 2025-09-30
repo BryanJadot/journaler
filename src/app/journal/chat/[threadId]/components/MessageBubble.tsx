@@ -65,7 +65,7 @@ function MessageBubbleInner({ message }: MessageBubbleProps) {
 function UserMessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className="chat chat-end">
-      <div className="chat-bubble lg:max-w-lg">
+      <div className="chat-bubble max-w-lg max-lg:max-w-sm max-md:max-w-2xs">
         <MessageBubbleInner message={message} />
       </div>
     </div>
