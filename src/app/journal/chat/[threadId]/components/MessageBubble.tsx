@@ -32,7 +32,7 @@ interface MessageBubbleProps {
  */
 function MessageBubbleInner({ message }: MessageBubbleProps) {
   return (
-    <div className="prose prose-md leading-snug max-w-full">
+    <div className="prose prose-md leading-snug max-w-full break-words">
       <ReactMarkdown
         components={{
           // Strip code formatting to maintain conversational tone in therapy context
