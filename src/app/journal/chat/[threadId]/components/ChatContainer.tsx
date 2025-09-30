@@ -69,7 +69,7 @@ export default function ChatContainer({ children }: ChatContainerProps) {
 
       <div
         ref={containerRef}
-        className="overflow-y-auto flex flex-col items-center flex-1"
+        className="overflow-y-auto flex flex-col items-center flex-1 w-full"
         onScroll={repositionTooltip}
       >
         <div className="flex flex-col gap-8 lg:w-4xl p-4 my-8">
