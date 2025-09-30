@@ -46,9 +46,8 @@ export default function MessageList({ messages }: MessageListProps) {
       No messages yet. Start a conversation!
     </p>
   ) : (
-    messages
-      .slice()
-      .reverse()
-      .map((message) => <MessageBubble key={message.id} message={message} />)
+    messages.map((message) => (
+      <MessageBubble key={message.id} message={message} />
+    ))
   );
 }

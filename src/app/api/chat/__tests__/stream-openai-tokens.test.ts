@@ -58,9 +58,6 @@ describe('streamOpenAITokens', () => {
       prompt: {
         id: THERAPY_ASSISTANT_PROMPT_ID,
       },
-      model: 'gpt-5-mini',
-      reasoning: { effort: 'low' },
-      text: { verbosity: 'medium' },
       input: [
         { role: 'user', content: 'Hello' },
         { role: 'assistant', content: 'Hi there!' },
@@ -128,9 +125,6 @@ describe('streamOpenAITokens', () => {
       prompt: {
         id: THERAPY_ASSISTANT_PROMPT_ID,
       },
-      model: 'gpt-5-mini',
-      reasoning: { effort: 'low' },
-      text: { verbosity: 'medium' },
       input: [{ role: 'user', content: 'First message' }],
     });
   });
@@ -271,9 +265,6 @@ describe('streamOpenAITokens', () => {
       prompt: {
         id: THERAPY_ASSISTANT_PROMPT_ID,
       },
-      model: 'gpt-5-mini',
-      reasoning: { effort: 'low' },
-      text: { verbosity: 'medium' },
       input: [
         { role: 'system', content: 'You are helpful' },
         { role: 'user', content: 'Hi' },
@@ -309,9 +300,6 @@ describe('streamOpenAITokens', () => {
       prompt: {
         id: THERAPY_ASSISTANT_PROMPT_ID,
       },
-      model: 'gpt-5-mini',
-      reasoning: { effort: 'low' },
-      text: { verbosity: 'medium' },
       input: [{ role: 'user', content: 'Test message' }],
     });
     expect(results).toEqual(['Test']);

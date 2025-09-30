@@ -62,7 +62,7 @@ export default function ChatContainer({ children }: ChatContainerProps) {
   useEffect(() => scrollToBottom('instant'), [scrollToBottom]);
 
   return (
-    <div className="flex flex-col h-screen w-full bg-base-100">
+    <div className="flex flex-col items-center h-screen w-full bg-base-100">
       <SelectionTooltip
         onQuote={chatInputFormRef.current?.focusTextareaAndJumpToEnd}
       />
@@ -72,13 +72,13 @@ export default function ChatContainer({ children }: ChatContainerProps) {
         className="overflow-y-auto flex flex-col items-center flex-1"
         onScroll={repositionTooltip}
       >
-        <div className="flex flex-col-reverse gap-8 w-4xl my-8">
-          {newMessages.length > 0 && <MessageList messages={newMessages} />}
+        <div className="flex flex-col gap-8 lg:w-4xl p-4 my-8">
           {children}
+          {newMessages.length > 0 && <MessageList messages={newMessages} />}
         </div>
       </div>
 
-      <div className="shrink-0">
+      <div className="shrink-0 lg:w-4xl w-full">
         <ChatInputForm
           ref={chatInputFormRef}
           onMessageSent={() =>

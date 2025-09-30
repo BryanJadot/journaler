@@ -52,9 +52,6 @@ export async function* streamOpenAITokens(
     prompt: {
       id: THERAPY_ASSISTANT_PROMPT_ID,
     },
-    model: 'gpt-5-mini',
-    reasoning: { effort: 'low' },
-    text: { verbosity: 'medium' },
     input,
   });
 
