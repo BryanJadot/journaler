@@ -70,7 +70,7 @@ export const ThreadDropdownMenu = forwardRef<
       <div
         tabIndex={0}
         role="button"
-        className="invisible group-hover:visible focus:visible pr-3 py-1.5"
+        className="max-lg:btn max-lg:btn-square lg:invisible group-hover:visible focus:visible pr-3 py-1.5"
       >
         <EllipsisHorizontalIcon className="w-4 h-4" />
       </div>
