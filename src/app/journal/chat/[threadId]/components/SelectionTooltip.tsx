@@ -66,11 +66,11 @@ export default function SelectionTooltip({ onQuote }: SelectionTooltipProps) {
       }}
     >
       <button
-        className="btn btn-sm btn-primary flex items-center gap-1"
+        className="btn btn-sm btn-primary flex items-center gap-1 text-lg"
         onClick={handleQuote}
         aria-label="Quote selected text"
       >
-        <ChatBubbleLeftRightIcon className="w-4 h-4" />
+        <ChatBubbleLeftRightIcon className="w-5 h-5" />
         Quote
       </button>
     </div>
