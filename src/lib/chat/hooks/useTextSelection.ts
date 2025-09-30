@@ -67,7 +67,7 @@ export function useTextSelection() {
 
     const tooltipPosition = {
       left: rect.left + rect.width / 2,
-      top: rect.top,
+      top: rect.bottom,
     };
 
     setSelectionAndTooltipPosition(selectedText, tooltipPosition);

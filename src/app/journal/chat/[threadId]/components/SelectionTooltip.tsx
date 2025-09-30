@@ -62,7 +62,7 @@ export default function SelectionTooltip({ onQuote }: SelectionTooltipProps) {
       className="fixed z-50"
       style={{
         left: `${tooltipPosition.left}px`,
-        top: `${tooltipPosition.top - 50}px`,
+        top: `${tooltipPosition.top + 10}px`,
       }}
     >
       <button
